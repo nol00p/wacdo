@@ -127,6 +127,7 @@ One order can contain serveral items. Each item can serveral option.
 
 ## ERD 
 
-![ERD](/wacdo_ERD.png)
+![ERD](/Documentation/wacdo_ERD.png)
+
 
 
