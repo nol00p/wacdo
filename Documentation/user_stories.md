@@ -1,0 +1,69 @@
+#User Stories
+
+
+| ID     | Title                          | As a              | I want                                                                          | So that                                                          | Epic                      | Estimation |
+| ------ | ------------------------------ | ----------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------- | ---------- |
+| US-001 | Create user account            | Administrator     | to create new user accounts with specific roles (admin, preparation, accueil)   | staff members can access the system with appropriate permissions | User Management           |            |
+| US-002 | Manage user roles              | Administrator     | to assign and modify user roles                                                 | I can control what each staff member can do in the system        | User Management           |            |
+| US-003 | Deactivate user account        | Administrator     | to deactivate/reactivate user accounts                                          | I can control system access without deleting user data           | User Management           |            |
+| US-004 | View user list                 | Administrator     | to view all users and their roles                                               | I can manage the team and their permissions                      | User Management           |            |
+| US-005 | Update user information        | Administrator     | to edit user details (username, email, role)                                    | user information stays current                                   | User Management           |            |
+| US-006 | Create product                 | Administrator     | to add new products with name, description, price, and image                    | customers can order new menu items                               | Product Management        |            |
+| US-007 | Update product information     | Administrator     | to edit product details (name, price, description, availability)                | product information remains accurate                             | Product Management        |            |
+| US-008 | Manage product availability    | Administrator     | to mark products as available/unavailable                                       | customers only see items we can prepare                          | Product Management        |            |
+| US-009 | Create product categories      | Administrator     | to organize products into categories                                            | the menu is well-structured and easy to navigate                 | Product Management        |            |
+| US-010 | Configure product options      | Administrator     | to define customization options (size, toppings, extras) for products           | customers can customize their orders                             | Product Management        |            |
+| US-011 | Set option values and prices   | Administrator     | to define specific values for options (Small/Medium/Large) with price modifiers | customers see accurate pricing for customizations                | Product Management        |            |
+| US-012 | Create menu                    | Administrator     | to create pre-defined menus with multiple products                              | we can offer combo deals to customers                            | Product Management        |            |
+| US-013 | Configure menu composition     | Administrator     | to add/remove products from menus and set quantities                            | menu contents can be easily adjusted                             | Product Management        |            |
+| US-014 | Manage menu pricing            | Administrator     | to set prices for complete menus                                                | we can offer special pricing for combos                          | Product Management        |            |
+| US-015 | Upload product images          | Administrator     | to add/update images for products                                               | customers can see what they're ordering                          | Product Management        |            |
+| US-016 | Create counter order           | Accueil staff     | to create orders for walk-in customers                                          | I can take orders at the counter                                 | Order Entry               |            |
+| US-017 | Create phone order             | Accueil staff     | to create orders received by phone                                              | I can process telephone orders                                   | Order Entry               |            |
+| US-018 | Add products to order          | Accueil staff     | to add products/menus to an order                                               | I can build complete customer orders                             | Order Entry               |            |
+| US-019 | Customize product options      | Accueil staff     | to select size, toppings, and other options for products                        | customers get exactly what they want                             | Order Entry               |            |
+| US-020 | Set order quantity             | Accueil staff     | to specify quantities for each item                                             | customers can order multiple items                               | Order Entry               |            |
+| US-021 | Calculate order total          | Accueil staff     | to see real-time price calculation with all options                             | customers know the exact cost before confirming                  | Order Entry               |            |
+| US-022 | Add customer information       | Accueil staff     | to record customer details (name, phone, email)                                 | we can contact customers about their orders                      | Order Entry               |            |
+| US-023 | Set delivery time              | Accueil staff     | to schedule when the order should be ready                                      | customers know when to pick up their order                       | Order Entry               |            |
+| US-024 | Add order notes                | Accueil staff     | to add special instructions to orders                                           | kitchen staff are aware of special requests                      | Order Entry               |            |
+| US-025 | Mark order as delivered        | Accueil staff     | to mark orders as delivered when customer picks up                              | order status is tracked accurately                               | Order Entry               |            |
+| US-026 | View order history             | Accueil staff     | to see past orders for a customer                                               | I can quickly repeat previous orders                             | Order Entry               |            |
+| US-027 | Cancel order                   | Accueil staff     | to cancel orders when necessary                                                 | incorrect orders don't go to preparation                         | Order Entry               |            |
+| US-028 | View pending orders            | Preparation staff | to see all orders that need to be prepared                                      | I know what to cook next                                         | Order Preparation         |            |
+| US-029 | View order details             | Preparation staff | to see full order details with all customizations                               | I can prepare orders correctly                                   | Order Preparation         |            |
+| US-030 | Sort orders by time            | Preparation staff | to see orders sorted by scheduled delivery time                                 | I prioritize urgent orders                                       | Order Preparation         |            |
+| US-031 | Mark order as preparing        | Preparation staff | to indicate I've started working on an order                                    | other staff know the order is being handled                      | Order Preparation         |            |
+| US-032 | Mark order as prepared         | Preparation staff | to indicate an order is ready for pickup                                        | accueil staff know they can give it to customers                 | Order Preparation         |            |
+| US-033 | View order status history      | Preparation staff | to see the timeline of status changes for an order                              | I can track order progression                                    | Order Preparation         |            |
+| US-034 | Filter orders by status        | Preparation staff | to view only pending or preparing orders                                        | I focus on what needs attention                                  | Order Preparation         |            |
+| US-035 | Secure login                   | All users         | to log in with username and password                                            | only authorized staff can access the system                      | Authentication & Security |            |
+| US-036 | Session management             | All users         | to stay logged in during my shift                                               | I don't have to re-login constantly                              | Authentication & Security |            |
+| US-037 | Secure logout                  | All users         | to log out when my shift ends                                                   | my account remains secure                                        | Authentication & Security |            |
+| US-038 | Password encryption            | System            | to store passwords securely using BCrypt                                        | user credentials are protected                                   | Authentication & Security |            |
+| US-039 | Role-based access control      | System            | to restrict access based on user roles                                          | users can only access features they're authorized for            | Authentication & Security |            |
+| US-040 | Audit logging                  | System            | to log all important actions (create order, change status, etc.)                | we have a record of who did what                                 | Authentication & Security |            |
+| US-041 | Session expiration             | System            | to automatically expire sessions after inactivity                               | unauthorized access is prevented                                 | Authentication & Security |            |
+| US-042 | Secure API endpoints           | System            | to protect all API endpoints with authentication                                | only authenticated clients can access data                       | Authentication & Security |            |
+| US-043 | RESTful API for products       | Frontend/API      | to retrieve product catalog via REST API                                        | I can display products in the UI                                 | API Integration           |            |
+| US-044 | RESTful API for orders         | Frontend/API      | to create and manage orders via REST API                                        | I can handle orders from the frontend                            | API Integration           |            |
+| US-045 | RESTful API for users          | Frontend/API      | to manage users via REST API                                                    | administrators can manage users through the UI                   | API Integration           |            |
+| US-046 | RESTful API for authentication | Frontend/API      | to authenticate users via REST API                                              | users can log in from the frontend                               | API Integration           |            |
+| US-047 | API error handling             | Frontend/API      | to receive clear error messages from the API                                    | I can display helpful errors to users                            | API Integration           |            |
+| US-048 | API documentation              | Developer         | to have API documentation (Swagger/OpenAPI)                                     | I can understand and integrate with the API easily               | API Integration           |            |
+| US-049 | CORS configuration             | Frontend/API      | to access the API from different origins                                        | the frontend and backend can communicate properly                | API Integration           |            |
+| US-050 | JSON response format           | Frontend/API      | to receive data in consistent JSON format                                       | data parsing is predictable and reliable                         | API Integration           |            |
+
+## Epic Summary
+
+| Epic                      | Number of Stories | Total Story Points |
+| ------------------------- | ----------------- | ------------------ |
+| User Management           | 5                 |                    |
+| Product Management        | 10                |                    |
+| Order Entry               | 12                |                    |
+| Order Preparation         | 7                 |                    |
+| Authentication & Security | 8                 |                    |
+| API Integration           | 8                 |                    |
+| **TOTAL**                 | **50**            |                    |
+
+
