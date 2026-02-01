@@ -13,6 +13,9 @@ func main() {
 	router := gin.Default()
 
 	// Security middleware
+	router.Use(config.SecurityMiddleware())
+	router.Use(config.CORSMiddleware())
+	router.Use(config.RateLimit(100))
 
 	// Loading .ENV vrariables
 	err := godotenv.Load()

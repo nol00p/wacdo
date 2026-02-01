@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -11,16 +12,21 @@ import (
 var DB *gorm.DB
 
 func ConnectDB() {
-	user := os.Getenv("USER")
-	pass := os.Getenv("DB_PASS")
+	// Get variables
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
 
-    // Basic check in case env vars are missing
-    if user == "" || pass == "" {
-        log.Fatal("USER or DB_PASS environment variable is not set")
-    }
+	// Basic check in case env vars are missing
+	if dbUser == "" || dbPass == "" {
+		log.Fatal("USER or DB_PASS environment variable is not set")
+	}
 
 	// Set DB connection
-    dsn := fmt.Sprintf("%s:%s@tcp(127.0.0.1:3306)/sharepoint?charset=utf8mb4&parseTime=True&loc=Local", user, pass)
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", dbUser, dbPass, dbHost, dbPort, dbName)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
