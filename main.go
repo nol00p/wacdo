@@ -4,6 +4,7 @@ import (
 	"log"
 	"wacdo/config"
 	"wacdo/models"
+	"wacdo/routes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -11,6 +12,9 @@ import (
 
 func main() {
 	router := gin.Default()
+
+	// Proxie rules
+	router.SetTrustedProxies(nil)
 
 	// Security middleware
 	router.Use(config.SecurityMiddleware())
@@ -23,6 +27,8 @@ func main() {
 		log.Println("file not found: .ENV")
 	}
 	// API router definition
+	routes.UsersRoutes(router)
+	routes.RolesRoutes(router)
 
 	// Connect to DB
 	config.ConnectDB()
