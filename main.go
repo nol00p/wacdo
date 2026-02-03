@@ -8,8 +8,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+
+	_ "wacdo/docs"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title WacDo
+// @version 1.0
+// @description Super Ordening System
+// @securityDefinitions.apiKey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	router := gin.Default()
 
@@ -29,6 +40,9 @@ func main() {
 	// API router definition
 	routes.UsersRoutes(router)
 	routes.RolesRoutes(router)
+
+	// Swagger routes
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Connect to DB
 	config.ConnectDB()

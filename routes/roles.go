@@ -9,6 +9,7 @@ import (
 func RolesRoutes(router *gin.Engine) {
 	routesGroup := router.Group("/roles")
 	{
-		routesGroup.POST("/create", controllers.CreateRole)
+		routesGroup.POST("/", controllers.CreateRole)
+		routesGroup.DELETE("/:id", controllers.DeleteRole)
 	}
 }
