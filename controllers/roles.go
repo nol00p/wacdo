@@ -31,7 +31,7 @@ func CreateRole(c *gin.Context) {
 	// Check if the role already exist
 	var existingRole models.Roles
 	if err := config.DB.Where("role_name = ?", role.RoleName).First(&existingRole).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Role allready exists"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Role already exists"})
 		return
 	}
 
@@ -43,6 +43,7 @@ func CreateRole(c *gin.Context) {
 
 	c.JSON(http.StatusOK, role)
 }
+
 // DeleteRole godoc
 // @Summary Delete a role
 // @Description Delete a role by ID (only if not in use by any users)
