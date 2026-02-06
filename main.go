@@ -40,6 +40,10 @@ func main() {
 	// API router definition
 	routes.UsersRoutes(router)
 	routes.RolesRoutes(router)
+	routes.ProductRoutes(router)
+	routes.CategoriesRoutes(router)
+	routes.OptionRoutes(router)
+	routes.OptionValueRoutes(router)
 
 	// Swagger routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -51,6 +55,10 @@ func main() {
 	config.DB.AutoMigrate(
 		&models.Users{},
 		&models.Roles{},
+		&models.Category{},
+		&models.Products{},
+		&models.ProductOptions{},
+		&models.OptionValues{},
 	)
 
 	// Start Server on port 8000

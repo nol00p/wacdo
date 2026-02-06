@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"wacdo/config"
 	"wacdo/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // CreateRole godoc
@@ -89,4 +91,62 @@ func DeleteRole(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Role deleted"})
+}
+
+// GetRoles godoc
+// @Summary Get all roles
+// @Description Retrieve a list of all roles
+// @Tags Roles
+// @Produce json
+// @Success 200 {array} models.Roles
+// @Failure 500 {object} map[string]string "Internal error"
+// @Security BearerAuth
+// @Router /roles [get]
+func GetRoles(c *gin.Context) {
+
+	var roles []models.Roles
+
+	if err := config.DB.Find(&roles).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get Role data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, roles)
+}
+
+// GetRole godoc
+// @Summary Get a role by ID
+// @Description Retrieve a single role by its ID
+// @Tags Roles
+// @Produce json
+// @Param id path int true "Role ID"
+// @Success 200 {object} models.Roles
+// @Failure 400 {object} map[string]string "Invalid ID"
+// @Failure 404 {object} map[string]string "Role not found"
+// @Failure 500 {object} map[string]string "Internal error"
+// @Security BearerAuth
+// @Router /roles/{id} [get]
+func GetRole(c *gin.Context) {
+
+	var role models.Roles
+
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	if err := config.DB.First(&role, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Role can't be found"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, role)
 }

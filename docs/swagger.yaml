@@ -16,6 +16,31 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.OptionValues:
+    properties:
+      id:
+        type: integer
+      option_id:
+        type: integer
+      option_price:
+        type: number
+      value:
+        type: string
+    type: object
+  models.ProductOptions:
+    properties:
+      id:
+        type: integer
+      is_required:
+        type: boolean
+      is_unique:
+        description: define if the option is single or multiple choise
+        type: string
+      name:
+        type: string
+      product_id:
+        type: integer
+    type: object
   models.Products:
     properties:
       category:
@@ -288,6 +313,441 @@ paths:
       summary: Update a category
       tags:
       - Categories
+  /options:
+    get:
+      description: Retrieve a list of all product options
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProductOptions'
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all product options
+      tags:
+      - Product Options
+    post:
+      consumes:
+      - application/json
+      description: Create a new option for a product (e.g. Size, Toppings)
+      parameters:
+      - description: Option details
+        in: body
+        name: option
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductOptions'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ProductOptions'
+        "400":
+          description: Invalid data or product not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new product option
+      tags:
+      - Product Options
+  /options/{id}:
+    delete:
+      description: Delete a product option by ID (also deletes its values)
+      parameters:
+      - description: Option ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Option deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Option not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a product option
+      tags:
+      - Product Options
+    get:
+      description: Retrieve a single product option by its ID
+      parameters:
+      - description: Option ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ProductOptions'
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Option not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a product option by ID
+      tags:
+      - Product Options
+    put:
+      consumes:
+      - application/json
+      description: Update an existing product option by ID
+      parameters:
+      - description: Option ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated option details
+        in: body
+        name: option
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductOptions'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ProductOptions'
+        "400":
+          description: Invalid ID or data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Option not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Option name already exists for this product
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a product option
+      tags:
+      - Product Options
+  /options/{option_id}/values:
+    get:
+      description: Retrieve all values belonging to a specific option
+      parameters:
+      - description: Option ID
+        in: path
+        name: option_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.OptionValues'
+            type: array
+        "400":
+          description: Invalid option ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Option not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get values by option
+      tags:
+      - Option Values
+    post:
+      consumes:
+      - application/json
+      description: Create one or more values for a product option (e.g. "Small", "Medium",
+        "Large" for Size)
+      parameters:
+      - description: Option ID
+        in: path
+        name: option_id
+        required: true
+        type: integer
+      - description: Array of option value details
+        in: body
+        name: values
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/models.OptionValues'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.OptionValues'
+            type: array
+        "400":
+          description: Invalid data or option not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create option values
+      tags:
+      - Option Values
+  /options/product/{product_id}:
+    get:
+      description: Retrieve all options belonging to a specific product
+      parameters:
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProductOptions'
+            type: array
+        "400":
+          description: Invalid product ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Product not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get options by product
+      tags:
+      - Product Options
+  /options/values/{id}:
+    delete:
+      description: Delete an option value by ID
+      parameters:
+      - description: Option Value ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Option value deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Option value not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete an option value
+      tags:
+      - Option Values
+    get:
+      description: Retrieve a single option value by its ID
+      parameters:
+      - description: Option Value ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.OptionValues'
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Option value not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get an option value by ID
+      tags:
+      - Option Values
+    put:
+      consumes:
+      - application/json
+      description: Update an existing option value by ID
+      parameters:
+      - description: Option Value ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated option value details
+        in: body
+        name: value
+        required: true
+        schema:
+          $ref: '#/definitions/models.OptionValues'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.OptionValues'
+        "400":
+          description: Invalid ID or data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Option value not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Value already exists for this option
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update an option value
+      tags:
+      - Option Values
   /products:
     get:
       description: Retrieve a list of all products with their categories
@@ -599,6 +1059,28 @@ paths:
       tags:
       - Products
   /roles:
+    get:
+      description: Retrieve a list of all roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Roles'
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all roles
+      tags:
+      - Roles
     post:
       consumes:
       - application/json
@@ -673,6 +1155,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete a role
+      tags:
+      - Roles
+    get:
+      description: Retrieve a single role by its ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Roles'
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Role not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a role by ID
       tags:
       - Roles
   /users:

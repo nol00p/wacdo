@@ -20,13 +20,36 @@ func ProductRoutes(router *gin.Engine) {
 	}
 }
 
-func CategoryRoutes(router *gin.Engine) {
-	routesGroup := router.Group("/category")
+func CategoriesRoutes(router *gin.Engine) {
+	routesGroup := router.Group("/categories")
 	{
 		routesGroup.POST("/", controllers.CreateCategory)
 		routesGroup.DELETE("/:id", controllers.DeleteCategory)
 		routesGroup.GET("/", controllers.GetCategories)
 		routesGroup.GET("/:id", controllers.GetCategory)
 		routesGroup.PUT("/:id", controllers.UpdateCategory)
+	}
+}
+
+func OptionRoutes(router *gin.Engine) {
+	routesGroup := router.Group("/options")
+	{
+		routesGroup.POST("/", controllers.CreateOption)
+		routesGroup.DELETE("/:id", controllers.DeleteOption)
+		routesGroup.GET("/", controllers.GetOptions)
+		routesGroup.GET("/:id", controllers.GetOption)
+		routesGroup.PUT("/:id", controllers.UpdateOption)
+		routesGroup.GET("/product/:product_id", controllers.GetOptionsByProduct)
+	}
+}
+
+func OptionValueRoutes(router *gin.Engine) {
+	routesGroup := router.Group("/options")
+	{
+		routesGroup.POST("/:id/values/", controllers.CreateOptionValue)
+		routesGroup.GET("/:id/values/", controllers.GetValuesByOption)
+		routesGroup.GET("/values/:id", controllers.GetOptionValue)
+		routesGroup.PUT("/values/:id", controllers.UpdateOptionValue)
+		routesGroup.DELETE("/values/:id", controllers.DeleteOptionValue)
 	}
 }

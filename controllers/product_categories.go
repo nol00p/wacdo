@@ -32,7 +32,7 @@ func CreateCategory(c *gin.Context) {
 
 	// Check if the category already exist
 	var existingCategory models.Category
-	if err := config.DB.Where("category_name = ?", category.Name).First(&existingCategory).Error; err == nil {
+	if err := config.DB.Where("name = ?", category.Name).First(&existingCategory).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Category already exists"})
 		return
 	}
@@ -190,7 +190,7 @@ func UpdateCategory(c *gin.Context) {
 
 	// Check if the new name conflicts with another category
 	var existingCategory models.Category
-	if err := config.DB.Where("category_name = ? AND id != ?", input.Name, id).First(&existingCategory).Error; err == nil {
+	if err := config.DB.Where("name = ? AND id != ?", input.Name, id).First(&existingCategory).Error; err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Category name already exists"})
 		return
 	}
