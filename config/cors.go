@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -8,8 +10,15 @@ import (
 )
 
 func CORSMiddleware() gin.HandlerFunc {
+	origins := []string{"http://localhost:8000"}
+
+	// CORS_ORIGINS can be a comma-separated list, e.g. "https://your-app.onrender.com,http://localhost:3000"
+	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
+		origins = strings.Split(extra, ",")
+	}
+
 	return cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:8000"},
+		AllowOrigins:     origins,
 		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		ExposeHeaders:    []string{"Content-Length"},

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"wacdo/config"
 	"wacdo/models"
 	"wacdo/routes"
@@ -61,6 +62,10 @@ func main() {
 		&models.OptionValues{},
 	)
 
-	// Start Server on port 8000
-	router.Run(":8000")
+	// Start Server on PORT from env (Render sets this), fallback to 8000
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
+	router.Run(":" + port)
 }
