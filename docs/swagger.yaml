@@ -16,6 +16,46 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.Menu:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_available:
+        type: boolean
+      menu_products:
+        items:
+          $ref: '#/definitions/models.MenuProduct'
+        type: array
+      name:
+        type: string
+      price:
+        type: number
+      updated_at:
+        type: string
+    required:
+    - name
+    - price
+    type: object
+  models.MenuProduct:
+    properties:
+      display_order:
+        type: integer
+      id:
+        type: integer
+      is_optional:
+        type: boolean
+      menu_id:
+        description: this is delete the MenuProducts when a menu is deleted
+        type: integer
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+    type: object
   models.OptionValues:
     properties:
       id:
@@ -313,6 +353,362 @@ paths:
       summary: Update a category
       tags:
       - Categories
+  /menus:
+    get:
+      description: Retrieve a list of all menus with their products
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Menu'
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all menus
+      tags:
+      - Menus
+    post:
+      consumes:
+      - application/json
+      description: Create a new menu with the provided details
+      parameters:
+      - description: Menu details
+        in: body
+        name: menu
+        required: true
+        schema:
+          $ref: '#/definitions/models.Menu'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Menu'
+        "400":
+          description: Invalid data or menu already exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new menu
+      tags:
+      - Menus
+  /menus/{id}:
+    delete:
+      description: Delete a menu by ID
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Menu deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Menu not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a menu
+      tags:
+      - Menus
+    get:
+      description: Retrieve a single menu by its ID with associated products
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Menu'
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Menu not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a menu by ID
+      tags:
+      - Menus
+    put:
+      consumes:
+      - application/json
+      description: Update an existing menu by ID
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated menu details
+        in: body
+        name: menu
+        required: true
+        schema:
+          $ref: '#/definitions/models.Menu'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Menu'
+        "400":
+          description: Invalid ID or data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Menu not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Menu name already exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a menu
+      tags:
+      - Menus
+  /menus/{id}/availability:
+    patch:
+      description: Quick toggle for is_available field
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Menu'
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Menu not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Toggle menu availability
+      tags:
+      - Menus
+  /menus/{id}/products:
+    get:
+      description: Retrieve all products belonging to a specific menu
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.MenuProduct'
+            type: array
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Menu not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get products in a menu
+      tags:
+      - Menus
+    post:
+      consumes:
+      - application/json
+      description: Add a product to a specific menu
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Menu product details
+        in: body
+        name: menu_product
+        required: true
+        schema:
+          $ref: '#/definitions/models.MenuProduct'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MenuProduct'
+        "400":
+          description: Invalid ID or data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Menu or product not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Product already in menu
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add a product to a menu
+      tags:
+      - Menus
+  /menus/products/{id}:
+    delete:
+      description: Remove a product from a menu by menu product ID
+      parameters:
+      - description: Menu Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product removed from menu
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Menu product not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove a product from a menu
+      tags:
+      - Menus
   /options:
     get:
       description: Retrieve a list of all product options
