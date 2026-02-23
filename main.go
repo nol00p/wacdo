@@ -23,6 +23,12 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	// Loading .ENV variables (must happen before middleware reads env)
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("file not found: .ENV")
+	}
+
 	router := gin.Default()
 
 	// Proxie rules
@@ -32,12 +38,6 @@ func main() {
 	router.Use(config.SecurityMiddleware())
 	router.Use(config.CORSMiddleware())
 	router.Use(config.RateLimit(100))
-
-	// Loading .ENV vrariables
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("file not found: .ENV")
-	}
 	// API router definition
 	routes.UsersRoutes(router)
 	routes.RolesRoutes(router)

@@ -33,22 +33,25 @@ type CustomClaim struct {
 // @Router /users/login [post]
 func Login(c *gin.Context) {
 
-	// Create the user object
-	var user models.Users
-	if err := c.ShouldBindJSON(&user); err != nil {
+	// Bind login credentials
+	var input struct {
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required,min=6"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Data"})
 		return
 	}
 
 	// Check for email
 	var existingUser models.Users
-	if err := config.DB.Where("email = ?", user.Email).First(&existingUser).Error; err != nil {
+	if err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email or Password Invalid"})
 		return
 	}
 
 	// Check for Password
-	if err := bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(user.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(input.Password)); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email or Password Invalid"})
 		return
 	}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WacDo Admin</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">W</span>
+        <span class="brand-text">WacDo</span>
+      </div>
+      <nav id="sidebar-nav">
+        <a href="#dashboard" data-page="dashboard"><span class="nav-icon">&#9632;</span> Dashboard</a>
+        <a href="#products" data-page="products"><span class="nav-icon">&#9733;</span> Products</a>
+        <a href="#menus" data-page="menus"><span class="nav-icon">&#9776;</span> Menus</a>
+        <a href="#orders" data-page="orders"><span class="nav-icon">&#9998;</span> Orders</a>
+        <a href="#customers" data-page="customers"><span class="nav-icon">&#9823;</span> Customers</a>
+        <a href="#users" data-page="users"><span class="nav-icon">&#9881;</span> Users</a>
+      </nav>
+    </aside>
+    <div id="main-wrap">
+      <header id="topbar">
+        <button id="sidebar-toggle">&#9776;</button>
+        <h1 id="page-title">Dashboard</h1>
+        <div id="topbar-right">
+          <span id="user-label"></span>
+          <a href="http://localhost:8000/swagger/index.html" target="_blank" class="btn btn-sm btn-outline">Swagger</a>
+          <button id="logout-btn" class="btn btn-sm">Logout</button>
+        </div>
+      </header>
+      <main id="content"></main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button id="modal-close" class="modal-close-btn">&times;</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/pages/login.js"></script>
+  <script src="js/pages/dashboard.js"></script>
+  <script src="js/pages/products.js"></script>
+  <script src="js/pages/menus.js"></script>
+  <script src="js/pages/orders.js"></script>
+  <script src="js/pages/customers.js"></script>
+  <script src="js/pages/users.js"></script>
+</body>
+</html>

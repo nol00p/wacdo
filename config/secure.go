@@ -11,7 +11,7 @@ func SecurityMiddleware() gin.HandlerFunc {
 		ContentTypeNosniff:    true,
 		BrowserXssFilter:      true,
 		SSLRedirect:           false,
-		ContentSecurityPolicy: "default-src 'self'",
+		ContentSecurityPolicy: "default-src 'self'; connect-src 'self' http://localhost:3000 http://localhost:8000",
 	})
 
 	return func(c *gin.Context) {
