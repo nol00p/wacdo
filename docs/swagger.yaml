@@ -1,4 +1,42 @@
 definitions:
+  controllers.OrderInput:
+    properties:
+      customer_id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/controllers.OrderItemInput'
+        type: array
+      notes:
+        type: string
+      order_type:
+        type: string
+      scheduled_time:
+        type: string
+    type: object
+  controllers.OrderItemInput:
+    properties:
+      menu_id:
+        type: integer
+      options:
+        items:
+          $ref: '#/definitions/controllers.OrderItemOptionInput'
+        type: array
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+    type: object
+  controllers.OrderItemOptionInput:
+    properties:
+      option_value_id:
+        type: integer
+    type: object
+  controllers.StatusInput:
+    properties:
+      status:
+        type: string
+    type: object
   models.Category:
     properties:
       created_at:
@@ -15,6 +53,23 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  models.Customer:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      updated_at:
+        type: string
+    required:
+    - name
     type: object
   models.Menu:
     properties:
@@ -66,6 +121,77 @@ definitions:
         type: number
       value:
         type: string
+    type: object
+  models.Order:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        $ref: '#/definitions/models.Users'
+      created_by_id:
+        type: integer
+      customer:
+        $ref: '#/definitions/models.Customer'
+      customer_id:
+        type: integer
+      id:
+        type: integer
+      notes:
+        type: string
+      order_items:
+        items:
+          $ref: '#/definitions/models.OrderItem'
+        type: array
+      order_type:
+        description: '"counter" or "phone"'
+        type: string
+      scheduled_time:
+        type: string
+      status:
+        description: pending, preparing, prepared, delivered, cancelled
+        type: string
+      total_price:
+        type: number
+      updated_at:
+        type: string
+    type: object
+  models.OrderItem:
+    properties:
+      id:
+        type: integer
+      item_total:
+        type: number
+      menu:
+        $ref: '#/definitions/models.Menu'
+      menu_id:
+        type: integer
+      order_id:
+        type: integer
+      order_item_options:
+        items:
+          $ref: '#/definitions/models.OrderItemOption'
+        type: array
+      product:
+        $ref: '#/definitions/models.Products'
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+      unit_price:
+        type: number
+    type: object
+  models.OrderItemOption:
+    properties:
+      id:
+        type: integer
+      option_value:
+        $ref: '#/definitions/models.OptionValues'
+      option_value_id:
+        type: integer
+      order_item_id:
+        type: integer
+      price_applied:
+        type: number
     type: object
   models.ProductOptions:
     properties:
@@ -353,6 +479,230 @@ paths:
       summary: Update a category
       tags:
       - Categories
+  /customers:
+    get:
+      description: Retrieve a list of all customers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Customer'
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all customers
+      tags:
+      - Customers
+    post:
+      consumes:
+      - application/json
+      description: Create a new customer with the provided details
+      parameters:
+      - description: Customer details
+        in: body
+        name: customer
+        required: true
+        schema:
+          $ref: '#/definitions/models.Customer'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Customer'
+        "400":
+          description: Invalid data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new customer
+      tags:
+      - Customers
+  /customers/{id}:
+    delete:
+      description: Delete a customer by ID
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Customer deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Customer not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a customer
+      tags:
+      - Customers
+    get:
+      description: Retrieve a single customer by their ID
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Customer'
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Customer not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a customer by ID
+      tags:
+      - Customers
+    put:
+      consumes:
+      - application/json
+      description: Update an existing customer by ID
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated customer details
+        in: body
+        name: customer
+        required: true
+        schema:
+          $ref: '#/definitions/models.Customer'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Customer'
+        "400":
+          description: Invalid ID or data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Customer not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Phone number already in use
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a customer
+      tags:
+      - Customers
+  /customers/{id}/orders:
+    get:
+      description: Retrieve all orders for a specific customer
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Order'
+            type: array
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Customer not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get orders by customer
+      tags:
+      - Orders
   /menus:
     get:
       description: Retrieve a list of all menus with their products
@@ -1144,6 +1494,176 @@ paths:
       summary: Update an option value
       tags:
       - Option Values
+  /orders:
+    get:
+      description: Retrieve all orders with optional status filter
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Order'
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all orders
+      tags:
+      - Orders
+    post:
+      consumes:
+      - application/json
+      description: Create an order with items and options. Prices are computed server-side.
+      parameters:
+      - description: Order details
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.OrderInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Order'
+        "400":
+          description: Invalid data
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new order
+      tags:
+      - Orders
+  /orders/{id}:
+    get:
+      description: Retrieve a single order with all its items and options
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Order'
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Order not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get an order by ID
+      tags:
+      - Orders
+  /orders/{id}/cancel:
+    patch:
+      description: Cancel an order (only if status is pending)
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Order'
+        "400":
+          description: Cannot cancel
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Order not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cancel an order
+      tags:
+      - Orders
+  /orders/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of an order with valid transition enforcement
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New status
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.StatusInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Order'
+        "400":
+          description: Invalid transition
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Order not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update order status
+      tags:
+      - Orders
   /products:
     get:
       description: Retrieve a list of all products with their categories

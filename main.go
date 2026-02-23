@@ -46,6 +46,8 @@ func main() {
 	routes.OptionRoutes(router)
 	routes.OptionValueRoutes(router)
 	routes.MenuRoutes(router)
+	routes.CustomerRoutes(router)
+	routes.OrderRoutes(router)
 
 	// Swagger routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -62,6 +64,10 @@ func main() {
 		&models.ProductOptions{},
 		&models.OptionValues{},
 		&models.Menu{},
+		&models.Customer{},
+		&models.Order{},
+		&models.OrderItem{},
+		&models.OrderItemOption{},
 	)
 
 	// Start Server on PORT from env (Render sets this), fallback to 8000
