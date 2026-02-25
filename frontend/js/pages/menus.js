@@ -123,20 +123,26 @@ App.registerPage('menus', async () => {
               <option value="">Select product</option>
               ${allProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
             </select>
-            <input type="number" id="mp-qty-${menuId}" value="1" min="1" style="width:50px;padding:4px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);">
+            <input type="number" id="mp-qty-${menuId}" value="1" min="1" style="width:50px;padding:4px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);" placeholder="Qty">
+            <input type="number" id="mp-order-${menuId}" value="0" min="0" style="width:50px;padding:4px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);" placeholder="Order">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);cursor:pointer;"><input type="checkbox" id="mp-opt-${menuId}"> Optional</label>
             <button class="btn btn-sm" onclick="addMenuProduct(${menuId})">Add</button>
           </div>
         </div>
         ${list.length === 0 ? '<p class="text-muted">No products in this menu</p>' : `
           <table class="sub-table">
-            <thead><tr><th>Product ID</th><th>Qty</th><th>Optional</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Product</th><th>Qty</th><th>Optional</th><th>Actions</th></tr></thead>
             <tbody>
-              ${list.map(mp => `<tr>
-                <td>${mp.product_id}</td>
+              ${list.map(mp => {
+                const prod = allProducts.find(p => p.id === mp.product_id);
+                const prodLabel = prod ? prod.name + ' (' + fmtPrice(prod.price) + ')' : 'Product #' + mp.product_id;
+                return `<tr>
+                <td>${prodLabel}</td>
                 <td>${mp.quantity}</td>
                 <td>${mp.is_optional ? 'Yes' : 'No'}</td>
                 <td><button class="btn btn-sm btn-danger" onclick="removeMenuProduct(${mp.id}, ${menuId})">Remove</button></td>
-              </tr>`).join('')}
+              </tr>`;
+              }).join('')}
             </tbody>
           </table>`}
       `;
@@ -146,11 +152,13 @@ App.registerPage('menus', async () => {
   window.addMenuProduct = async function(menuId) {
     const prodId = document.getElementById('mp-prod-' + menuId).value;
     const qty = document.getElementById('mp-qty-' + menuId).value;
+    const displayOrder = document.getElementById('mp-order-' + menuId).value;
+    const isOptional = document.getElementById('mp-opt-' + menuId).checked;
     if (!prodId) return App.toast('Select a product', 'error');
     try {
       await App.api('/menus/' + menuId + '/products/', {
         method: 'POST',
-        body: { product_id: Number(prodId), quantity: Number(qty) }
+        body: { product_id: Number(prodId), quantity: Number(qty), display_order: Number(displayOrder), is_optional: isOptional }
       });
       App.toast('Product added', 'success');
       loadMenuProducts(menuId);

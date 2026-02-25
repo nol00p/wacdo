@@ -79,11 +79,13 @@ App.registerPage('orders', async () => {
   }
 
   function renderKanbanCard(o) {
+    const notesSnippet = o.notes ? (o.notes.length > 50 ? o.notes.slice(0, 50) + '...' : o.notes) : '';
     return `<div class="kanban-card">
       <div class="order-id">#${o.id}</div>
       <div class="order-meta">${o.order_type} | ${fmtPrice(o.total_price)}</div>
       <div class="order-meta">${o.customer ? o.customer.name : 'Walk-in'}</div>
       <div class="order-meta">${o.order_items ? o.order_items.length : 0} items</div>
+      ${notesSnippet ? `<div class="order-meta text-muted" style="font-size:11px;font-style:italic;">${notesSnippet}</div>` : ''}
       <div class="order-actions">${orderActionButtons(o)}</div>
     </div>`;
   }
@@ -137,12 +139,24 @@ App.registerPage('orders', async () => {
         <table class="sub-table">
           <thead><tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
           <tbody>
-            ${(o.order_items || []).map(it => `<tr>
-              <td>${it.product_id ? 'Product #' + it.product_id : 'Menu #' + it.menu_id}</td>
+            ${(o.order_items || []).map(it => {
+              let itemName;
+              if (it.product_id) {
+                const prod = allProducts.find(p => p.id === it.product_id);
+                itemName = prod ? prod.name : 'Product #' + it.product_id;
+              } else {
+                const menu = allMenus.find(m => m.id === it.menu_id);
+                itemName = menu ? menu.name : 'Menu #' + it.menu_id;
+              }
+              const opts = (it.order_item_options || []).map(o => o.option_value ? o.option_value.value : '').filter(Boolean);
+              const optsStr = opts.length ? '<div class="text-muted" style="font-size:11px;">' + opts.join(', ') + '</div>' : '';
+              return `<tr>
+              <td>${itemName}${optsStr}</td>
               <td>${it.quantity}</td>
               <td>${fmtPrice(it.unit_price)}</td>
               <td>${fmtPrice(it.item_total)}</td>
-            </tr>`).join('')}
+            </tr>`;
+            }).join('')}
           </tbody>
         </table>
       `);
