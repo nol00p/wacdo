@@ -1,133 +1,313 @@
-# Project data management
+# WacDo — Entity Relationship Documentation
+
+## Data Model Overview
+
+WacDo uses 12 tables organized into three domains: **User Management**, **Product & Menu Management**, and **Customer & Order Management**.
+
+---
 
 ## User Management
-in order to avoid having to hardcode most of the permisison and increase maintenability we will split the roles from the actual permissions and have a "glue" table 
 
-**Roles**
-```
-roles:
-┌────┬──────────────┐
-│ id │ name         │
-├────┼──────────────┤
-│ 1  │ admin        │
-│ 2  │ preparation  │
-│ 3  │ accueil      │
-└────┴──────────────┘
-```
-**Permissions**
-```
-permissions:
-┌────┬────────────────┬──────────┬────────┐
-│ id │ name           │ resource │ action │
-├────┼────────────────┼──────────┼────────┤
-│ 1  │ manage_users   │ users    │ create │
-│ 2  │ manage_products│ products │ create │
-│ 3  │ view_orders    │ orders   │ read   │
-│ 4  │ create_orders  │ orders   │ create │
-│ 5  │ prepare_orders │ orders   │ prepare│
-│ 6  │ deliver_orders │ orders   │ deliver│
-└────┴────────────────┴──────────┴────────┘
-```
-**Glue table**
-```
-role_permissions:
-┌────┬─────────┬────────────────┬─────────────────────────────┐
-│ id │ role_id │ permission_id  │ Meaning                     │
-├────┼─────────┼────────────────┼─────────────────────────────┤
-│ 1  │ 1       │ 1              │ admin can manage_users      │
-│ 2  │ 1       │ 2              │ admin can manage_products   │
-│ 3  │ 1       │ 3              │ admin can view_orders       │
-│ 4  │ 1       │ 4              │ admin can create_orders     │
-│ 5  │ 1       │ 5              │ admin can prepare_orders    │
-│ 6  │ 1       │ 6              │ admin can deliver_orders    │
-│ 7  │ 2       │ 3              │ preparation can view_orders │
-│ 8  │ 2       │ 5              │ preparation can prepare_orders│
-│ 9  │ 3       │ 3              │ accueil can view_orders     │
-│ 10 │ 3       │ 4              │ accueil can create_orders   │
-│ 11 │ 3       │ 6              │ accueil can deliver_orders  │
-└────┴─────────┴────────────────┴─────────────────────────────┘
-```
-##  Product & Menu Management
-#### Example
- - Option 1: Size (REQUIRED, SINGLE choice)
- ```
-Product_options:
-- id: 1
-- product_id: 100 (Margherita Pizza)
-- name: "Size"
-- type: "single"
-- is_required: true
+### Roles
 
-option_values:
-- id: 1,  option_id: 1, value: "Small (8 inch)",   price_modifier: -2.00  → €8.00
-- id: 2,  option_id: 1, value: "Medium (12 inch)", price_modifier:  0.00  → €10.00
-- id: 3,  option_id: 1, value: "Large (16 inch)",  price_modifier: +3.00  → €13.00
-- id: 4,  option_id: 1, value: "XL (20 inch)",     price_modifier: +6.00  → €16.00
- ```
+Defines access levels for staff users. Three roles are used: `admin`, `preparation`, `accueil`.
 
- - Option 2: Extra Toppings (OPTIONAL, MULTIPLE choices)
- ```
-product_options:
-- id: 2
-- product_id: 100 (Margherita Pizza)
-- name: "Extra Toppings"
-- type: "multiple"
-- is_required: false
-
-option_values:
-- id: 5,  option_id: 2, value: "Extra Cheese",    price_modifier: +1.50
-- id: 6,  option_id: 2, value: "Pepperoni",       price_modifier: +2.00
-- id: 7,  option_id: 2, value: "Mushrooms",       price_modifier: +1.00
-- id: 8,  option_id: 2, value: "Olives",          price_modifier: +1.00
-- id: 9,  option_id: 2, value: "Onions",          price_modifier: +0.50
-- id: 10, option_id: 2, value: "Jalapeños",       price_modifier: +1.50
- ```
- 
- - Option 3: Crust Type (OPTIONAL, SINGLE choice)
 ```
-product_options:
-- id: 3
-- product_id: 100 (Margherita Pizza)
-- name: "Crust Type"
-- type: "single"
-- is_required: false
-
-option_values:
-- id: 11, option_id: 3, value: "Regular",         price_modifier:  0.00
-- id: 12, option_id: 3, value: "Thin Crust",      price_modifier:  0.00
-- id: 13, option_id: 3, value: "Thick Crust",     price_modifier: +1.00
-- id: 14, option_id: 3, value: "Stuffed Crust",   price_modifier: +3.00
-- id: 15, option_id: 3, value: "Gluten-Free",     price_modifier: +2.50
+roles
+┌──────────────┬──────────┬──────────────────────────────────────┐
+│ Column       │ Type     │ Constraints                          │
+├──────────────┼──────────┼──────────────────────────────────────┤
+│ id           │ uint     │ PK, auto-increment                   │
+│ role_name    │ string   │ UNIQUE, NOT NULL, max 50             │
+│ description  │ string   │ max 255                              │
+│ permissions  │ text     │ Free-text permissions description     │
+│ created_at   │ datetime │                                      │
+│ updated_at   │ datetime │                                      │
+└──────────────┴──────────┴──────────────────────────────────────┘
 ```
 
+### Users
+
+Internal staff members who operate the back-office.
+
+```
+users
+┌──────────────┬──────────┬──────────────────────────────────────┐
+│ Column       │ Type     │ Constraints                          │
+├──────────────┼──────────┼──────────────────────────────────────┤
+│ id           │ uint     │ PK, auto-increment                   │
+│ username     │ string   │ NOT NULL                             │
+│ email        │ string   │ UNIQUE, NOT NULL                     │
+│ password     │ string   │ NOT NULL (bcrypt hash)               │
+│ roles_id     │ uint     │ FK → roles(id)                       │
+│ is_active    │ bool     │ DEFAULT true                         │
+│ created_at   │ datetime │                                      │
+│ updated_at   │ datetime │                                      │
+└──────────────┴──────────┴──────────────────────────────────────┘
+```
+
+**Relationships:** `users.roles_id` → `roles.id` (many-to-one)
+
+---
+
+## Product & Menu Management
+
+### Categories
+
+Groups products for display and filtering on the kiosk.
+
+```
+categories
+┌───────────────┬──────────┬──────────────────────────────────────┐
+│ Column        │ Type     │ Constraints                          │
+├───────────────┼──────────┼──────────────────────────────────────┤
+│ id            │ uint     │ PK, auto-increment                   │
+│ name          │ string   │ UNIQUE, NOT NULL                     │
+│ description   │ string   │                                      │
+│ display_order │ uint     │                                      │
+│ image_url     │ string   │                                      │
+│ created_at    │ datetime │                                      │
+│ updated_at    │ datetime │                                      │
+└───────────────┴──────────┴──────────────────────────────────────┘
+```
+
+### Products
+
+Single orderable items with pricing, stock, and availability.
+
+```
+products
+┌──────────────────┬──────────┬──────────────────────────────────────┐
+│ Column           │ Type     │ Constraints                          │
+├──────────────────┼──────────┼──────────────────────────────────────┤
+│ id               │ uint     │ PK, auto-increment                   │
+│ category_id      │ uint     │ FK → categories(id)                  │
+│ name             │ string   │ UNIQUE, NOT NULL                     │
+│ description      │ string   │                                      │
+│ price            │ float64  │ NOT NULL                             │
+│ stock_quantity   │ uint     │                                      │
+│ is_available     │ bool     │                                      │
+│ image_url        │ string   │                                      │
+│ preparation_time │ uint     │ Minutes                              │
+│ created_at       │ datetime │                                      │
+│ updated_at       │ datetime │                                      │
+└──────────────────┴──────────┴──────────────────────────────────────┘
+```
+
+**Relationships:** `products.category_id` → `categories.id` (many-to-one)
+
+### Product Options
+
+Customization groups for a product (e.g., "Size", "Extra Toppings").
+
+```
+product_options
+┌──────────────┬──────────┬──────────────────────────────────────┐
+│ Column       │ Type     │ Constraints                          │
+├──────────────┼──────────┼──────────────────────────────────────┤
+│ id           │ uint     │ PK, auto-increment                   │
+│ product_id   │ uint     │ FK → products(id)                    │
+│ name         │ string   │ NOT NULL                             │
+│ is_unique    │ string   │ "single" or "multiple"               │
+│ is_required  │ bool     │                                      │
+└──────────────┴──────────┴──────────────────────────────────────┘
+```
+
+**Relationships:** `product_options.product_id` → `products.id` (many-to-one)
+
+### Option Values
+
+Selectable values within an option group (e.g., "Small", "Medium", "Large").
+
+```
+option_values
+┌──────────────┬──────────┬──────────────────────────────────────┐
+│ Column       │ Type     │ Constraints                          │
+├──────────────┼──────────┼──────────────────────────────────────┤
+│ id           │ uint     │ PK, auto-increment                   │
+│ option_id    │ uint     │ FK → product_options(id)             │
+│ value        │ string   │ NOT NULL                             │
+│ option_price │ float64  │ Additional cost                      │
+└──────────────┴──────────┴──────────────────────────────────────┘
+```
+
+**Relationships:** `option_values.option_id` → `product_options.id` (many-to-one)
+
+### Menus
+
+Combo meals bundling multiple products at a fixed price.
+
+```
+menus
+┌──────────────┬──────────┬──────────────────────────────────────┐
+│ Column       │ Type     │ Constraints                          │
+├──────────────┼──────────┼──────────────────────────────────────┤
+│ id           │ uint     │ PK, auto-increment                   │
+│ name         │ string   │ UNIQUE, NOT NULL, max 100            │
+│ description  │ string   │ max 255                              │
+│ price        │ float64  │ NOT NULL                             │
+│ is_available │ bool     │ DEFAULT true                         │
+│ created_at   │ datetime │                                      │
+│ updated_at   │ datetime │                                      │
+└──────────────┴──────────┴──────────────────────────────────────┘
+```
+
+### Menu Products
+
+Join table linking menus to their constituent products.
+
+```
+menu_products
+┌───────────────┬──────────┬──────────────────────────────────────┐
+│ Column        │ Type     │ Constraints                          │
+├───────────────┼──────────┼──────────────────────────────────────┤
+│ id            │ uint     │ PK, auto-increment                   │
+│ menu_id       │ uint     │ FK → menus(id), ON DELETE CASCADE    │
+│ product_id    │ uint     │ FK → products(id)                    │
+│ quantity      │ uint     │ DEFAULT 1                            │
+│ is_optional   │ bool     │ DEFAULT false                        │
+│ display_order │ uint     │ DEFAULT 0                            │
+└───────────────┴──────────┴──────────────────────────────────────┘
+```
+
+**Relationships:** `menu_products.menu_id` → `menus.id`, `menu_products.product_id` → `products.id` (many-to-many join)
+
+---
 
 ## Customer & Order Management
 
-One order can contain serveral items. Each item can serveral option. 
+### Customers
+
+External customers who place orders.
+
 ```
-  1 ORDER                                                    
-    └─→ N ORDER_ITEMS (different products)                  
-           └─→ N ORDER_ITEM_OPTIONS (selected choices)      
+customers
+┌──────────────┬──────────┬──────────────────────────────────────┐
+│ Column       │ Type     │ Constraints                          │
+├──────────────┼──────────┼──────────────────────────────────────┤
+│ id           │ uint     │ PK, auto-increment                   │
+│ name         │ string   │ NOT NULL                             │
+│ phone        │ string   │                                      │
+│ email        │ string   │                                      │
+│ created_at   │ datetime │                                      │
+│ updated_at   │ datetime │                                      │
+└──────────────┴──────────┴──────────────────────────────────────┘
+```
 
-  Example:                                                   
-  Order #1001                                                
-    ├─→ Item 1: Pizza (Large, Cheese, Pepperoni)            
-    │     ├─→ Option: Size = Large (+€3.00)                 
-    │     ├─→ Option: Topping = Cheese (+€1.50)             
-    │     └─→ Option: Topping = Pepperoni (+€2.00)          
-    │                                                         
-    └─→ Item 2: Pizza (Large, Cheese)                        
-          ├─→ Option: Size = Large (+€3.00)                  
-          └─→ Option: Topping = Cheese (+€1.50)        
-```      
+### Orders
 
-## Security & Session Management
-- for security all action made by users are logged in the DB
-- The user session are all time stamped. 
+Customer orders created by staff members.
 
-## ERD 
+```
+orders
+┌────────────────┬──────────┬──────────────────────────────────────┐
+│ Column         │ Type     │ Constraints                          │
+├────────────────┼──────────┼──────────────────────────────────────┤
+│ id             │ uint     │ PK, auto-increment                   │
+│ customer_id    │ *uint    │ FK → customers(id), NULLABLE         │
+│ created_by_id  │ uint     │ FK → users(id)                       │
+│ order_type     │ string   │ "counter" or "phone"                 │
+│ status         │ string   │ DEFAULT "pending"                    │
+│ notes          │ string   │ Free-text for kitchen                │
+│ scheduled_time │ *datetime│ NULLABLE, requested delivery time    │
+│ total_price    │ float64  │ DEFAULT 0, server-computed           │
+│ created_at     │ datetime │                                      │
+│ updated_at     │ datetime │                                      │
+└────────────────┴──────────┴──────────────────────────────────────┘
+```
 
-![ERD](/docs/wacdo_ERD.png)
+**Status workflow:** `pending → preparing → prepared → delivered` | `pending → cancelled`
 
+**Relationships:**
+- `orders.customer_id` → `customers.id` (optional many-to-one)
+- `orders.created_by_id` → `users.id` (many-to-one)
 
+### Order Items
 
+Line items within an order. Each references either a product or a menu (exactly one).
+
+```
+order_items
+┌──────────────┬──────────┬──────────────────────────────────────┐
+│ Column       │ Type     │ Constraints                          │
+├──────────────┼──────────┼──────────────────────────────────────┤
+│ id           │ uint     │ PK, auto-increment                   │
+│ order_id     │ uint     │ FK → orders(id)                      │
+│ product_id   │ *uint    │ FK → products(id), NULLABLE          │
+│ menu_id      │ *uint    │ FK → menus(id), NULLABLE             │
+│ quantity     │ uint     │ DEFAULT 1                            │
+│ unit_price   │ float64  │ Price snapshot at order time          │
+│ item_total   │ float64  │ (unit_price + options) × quantity     │
+└──────────────┴──────────┴──────────────────────────────────────┘
+```
+
+**Relationships:**
+- `order_items.order_id` → `orders.id` (many-to-one, CASCADE)
+- `order_items.product_id` → `products.id` (optional)
+- `order_items.menu_id` → `menus.id` (optional)
+
+### Order Item Options
+
+Selected option values for an order item, with price snapshot.
+
+```
+order_item_options
+┌─────────────────┬──────────┬──────────────────────────────────────┐
+│ Column          │ Type     │ Constraints                          │
+├─────────────────┼──────────┼──────────────────────────────────────┤
+│ id              │ uint     │ PK, auto-increment                   │
+│ order_item_id   │ uint     │ FK → order_items(id)                 │
+│ option_value_id │ uint     │ FK → option_values(id)               │
+│ price_applied   │ float64  │ Price snapshot at order time          │
+└─────────────────┴──────────┴──────────────────────────────────────┘
+```
+
+**Relationships:**
+- `order_item_options.order_item_id` → `order_items.id` (many-to-one, CASCADE)
+- `order_item_options.option_value_id` → `option_values.id` (many-to-one)
+
+---
+
+## Relationship Summary
+
+```
+roles 1──→ N users
+                 ↓
+categories 1──→ N products 1──→ N product_options 1──→ N option_values
+                 ↓                                            ↓
+                 ├──→ N menu_products ←── N menus             │
+                 ↓                         ↓                  │
+              orders 1──→ N order_items 1──→ N order_item_options
+                 ↑              ↑                             ↑
+              customers    (product OR menu)           (option_value)
+```
+
+---
+
+## Example: Order Structure
+
+```
+Order #1001 (counter, pending)
+├── Item 1: Margherita Pizza × 1 — €10.00
+│     ├── Option: Size = Large (+€3.00)
+│     ├── Option: Topping = Extra Cheese (+€1.50)
+│     └── Option: Topping = Pepperoni (+€2.00)
+│     → item_total = (10.00 + 3.00 + 1.50 + 2.00) × 1 = €16.50
+│
+└── Item 2: Classic Menu × 2 — €8.99
+      → item_total = 8.99 × 2 = €17.98
+
+→ total_price = €34.48
+```
+
+---
+
+## Design Notes
+
+- **Permissions:** The original design called for a separate `permissions` table with a `role_permissions` glue table. In practice, RBAC is enforced via middleware that checks the role name directly (admin/preparation/accueil). The `permissions` text field on `roles` is kept for documentation purposes.
+- **Price snapshots:** `order_items.unit_price` and `order_item_options.price_applied` capture prices at order time, so changing a product's price doesn't affect past orders.
+- **Soft delete:** Not used. `users.is_active` handles deactivation. Hard delete is used for other entities.
+
+## ERD Diagram
+
+![ERD](wacdo_ERD.png)
