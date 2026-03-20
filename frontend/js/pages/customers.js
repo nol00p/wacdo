@@ -1,5 +1,5 @@
 App.registerPage('customers', async () => {
-  render('<div class="empty-msg">Loading customers...</div>');
+  render('<div class="loading">Loading customers...</div>');
 
   let allCustomers = [];
   await loadCustomers();
@@ -24,9 +24,9 @@ App.registerPage('customers', async () => {
           <tbody id="cust-tbody">
             ${list.map(c => `<tr>
               <td>${c.id}</td>
-              <td>${c.name}</td>
-              <td>${c.phone || '-'}</td>
-              <td>${c.email || '-'}</td>
+              <td>${esc(c.name)}</td>
+              <td>${esc(c.phone) || '-'}</td>
+              <td>${esc(c.email) || '-'}</td>
               <td>${fmtDate(c.created_at)}</td>
               <td class="inline-flex">
                 <button class="btn btn-sm btn-info" onclick="viewCustOrders(${c.id}, '${c.name}')">Orders</button>
@@ -67,6 +67,14 @@ App.registerPage('customers', async () => {
     if (id) {
       try { cust = await App.api('/customers/' + id); } catch { return App.toast('Failed to load', 'error'); }
     }
+    const consentRow = id ? '' : `
+        <div class="form-group" style="margin-top:12px;">
+          <label style="display:flex;align-items:start;gap:8px;cursor:pointer;font-size:13px;">
+            <input type="checkbox" id="cf-consent" required style="margin-top:3px;">
+            <span>The customer has been informed that their personal data (name, phone, email) will be stored and used solely for order management, and that they can request access, modification, or deletion at any time. <a href="#privacy" target="_blank">Privacy policy</a></span>
+          </label>
+        </div>`;
+
     App.modal(id ? 'Edit Customer' : 'New Customer', `
       <form id="cust-form">
         <div class="form-group"><label>Name</label><input id="cf-name" value="${cust.name}" required></div>
@@ -74,6 +82,7 @@ App.registerPage('customers', async () => {
           <div class="form-group"><label>Phone</label><input id="cf-phone" value="${cust.phone || ''}"></div>
           <div class="form-group"><label>Email</label><input type="email" id="cf-email" value="${cust.email || ''}"></div>
         </div>
+        ${consentRow}
         <button type="submit" class="btn btn-block">${id ? 'Update' : 'Create'}</button>
       </form>
     `);

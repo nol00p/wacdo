@@ -1,5 +1,5 @@
 App.registerPage('menus', async () => {
-  render('<div class="empty-msg">Loading menus...</div>');
+  render('<div class="loading">Loading menus...</div>');
 
   let allProducts = [];
   try { allProducts = await App.api('/products/'); if (!Array.isArray(allProducts)) allProducts = []; } catch {}
@@ -22,8 +22,8 @@ App.registerPage('menus', async () => {
               ${list.map(m => `
                 <tr>
                   <td>${m.id}</td>
-                  <td>${m.name}</td>
-                  <td class="text-muted">${m.description || '-'}</td>
+                  <td>${esc(m.name)}</td>
+                  <td class="text-muted">${esc(m.description) || '-'}</td>
                   <td>${fmtPrice(m.price)}</td>
                   <td>
                     <label class="toggle">

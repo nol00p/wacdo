@@ -11,7 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateCategory godoc
+// CreateCategory adds a new product category.
+// Category names must be unique.
+//
 // @Summary Create a new category
 // @Description Create a new product category with the provided details
 // @Tags Categories
@@ -26,7 +28,7 @@ func CreateCategory(c *gin.Context) {
 	var category models.Category
 
 	if err := c.ShouldBindJSON(&category); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
 		return
 	}
 
@@ -39,14 +41,16 @@ func CreateCategory(c *gin.Context) {
 
 	// Create
 	if err := config.DB.Create(&category).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Category couln't not be reated"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Category couldn't be created"})
 		return
 	}
 
 	c.JSON(http.StatusOK, category)
 }
 
-// DeleteCategory godoc
+// DeleteCategory removes a category from the system.
+// A category cannot be deleted if products are still assigned to it — reassign or delete products first.
+//
 // @Summary Delete a category
 // @Description Delete a category by ID (only if not in use by any products)
 // @Tags Categories
@@ -80,7 +84,7 @@ func DeleteCategory(c *gin.Context) {
 	var count int64
 	config.DB.Model(&models.Products{}).Where("category_id = ?", id).Count(&count)
 	if count > 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": "Cannot delete category: still in use by product"})
+		c.JSON(http.StatusConflict, gin.H{"error": "Cannot delete category: still in use by products"})
 		return
 	}
 
@@ -93,7 +97,8 @@ func DeleteCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Category deleted"})
 }
 
-// GetCategories godoc
+// GetCategories returns all product categories.
+//
 // @Summary Get all categories
 // @Description Retrieve a list of all product categories
 // @Tags Categories
@@ -107,14 +112,15 @@ func GetCategories(c *gin.Context) {
 	var category []models.Category
 
 	if err := config.DB.Find(&category).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get categories"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve categories"})
 		return
 	}
 
 	c.JSON(http.StatusOK, category)
 }
 
-// GetCategory godoc
+// GetCategory returns a single category by ID.
+//
 // @Summary Get a category by ID
 // @Description Retrieve a single category by its ID
 // @Tags Categories
@@ -134,24 +140,26 @@ func GetCategory(c *gin.Context) {
 	id, err := strconv.Atoi(idParam)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	if err := config.DB.First(&category, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Category can't be found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
 	c.JSON(http.StatusOK, category)
 }
 
-// UpdateCategory godoc
+// UpdateCategory modifies an existing category.
+// Validates that the new name doesn't conflict with another category.
+//
 // @Summary Update a category
 // @Description Update an existing category by ID
 // @Tags Categories
@@ -173,12 +181,12 @@ func UpdateCategory(c *gin.Context) {
 	id, err := strconv.Atoi(idParam)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 	// Check if the category exists
 	if err := config.DB.First(&category, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Category Not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Category not found"})
 		return
 	}
 	// Bind the update data

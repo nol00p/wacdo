@@ -1,3 +1,4 @@
+// Package controllers implements the HTTP handlers for all API endpoints.
 package controllers
 
 import (
@@ -17,11 +18,16 @@ import (
 )
 
 type CustomClaim struct {
-	UserID uint
+	UserID   uint   `json:"UserID"`
+	RoleName string `json:"RoleName"`
 	jwt.RegisteredClaims
 }
 
-// Login godoc
+// Login authenticates a user by email and password, then returns a signed JWT token.
+// The token contains the user's ID and role name, and expires after 2 hours.
+// Deactivated users are rejected even if credentials are valid.
+// Both email-not-found and wrong-password return the same error to prevent user enumeration.
+//
 // @Summary User login
 // @Description Authenticate user and return JWT token
 // @Tags Users
@@ -39,26 +45,40 @@ func Login(c *gin.Context) {
 		Password string `json:"password" binding:"required,min=6"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
 		return
 	}
 
 	// Check for email
 	var existingUser models.Users
 	if err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email or Password Invalid"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
 	// Check for Password
 	if err := bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(input.Password)); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email or Password Invalid"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
-	//if both email ans Password are correct
+	// Check if user account is active
+	if !existingUser.IsActive {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Account is deactivated"})
+		return
+	}
+
+	// Fetch the user's role to embed in the token
+	var role models.Roles
+	if err := config.DB.First(&role, existingUser.RolesID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user role"})
+		return
+	}
+
+	// Build JWT claims with user ID and role
 	claim := &CustomClaim{
-		UserID: existingUser.ID,
+		UserID:   existingUser.ID,
+		RoleName: role.RoleName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
 		},
@@ -69,7 +89,7 @@ func Login(c *gin.Context) {
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error while generating the token "})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to generate token"})
 		return
 	}
 
@@ -77,7 +97,10 @@ func Login(c *gin.Context) {
 
 }
 
-// CreateUser godoc
+// CreateUser registers a new staff user.
+// Validates email uniqueness, password strength (via utils.ValidatePassword), and that the
+// referenced role exists. The password is bcrypt-hashed before storage.
+//
 // @Summary Create a new user
 // @Description Create a new user with the provided details
 // @Tags Users
@@ -93,7 +116,7 @@ func CreateUser(c *gin.Context) {
 	// Get input
 	var input models.UserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
 		return
 	}
 
@@ -101,7 +124,7 @@ func CreateUser(c *gin.Context) {
 	var count int64
 	config.DB.Model(&models.Users{}).Where("email = ?", input.Email).Count(&count)
 	if count > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email Already in Use"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
 		return
 	}
 
@@ -113,7 +136,7 @@ func CreateUser(c *gin.Context) {
 	// Generate and save token from password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server Error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
 		return
 	}
 
@@ -133,14 +156,17 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User Creation Error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "User Created"})
 }
 
-// DeleteUser godoc
+// DeleteUser permanently removes a user from the database.
+// Note: users with existing orders cannot be deleted due to the foreign key on orders.created_by_id.
+// In that case, use ToggleUserStatus to deactivate the account instead.
+//
 // @Summary Delete a user
 // @Description Delete a user by ID
 // @Tags Users
@@ -160,24 +186,144 @@ func DeleteUser(c *gin.Context) {
 
 	// Check if id format is valid
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	// Check if the user exists
 	if err := config.DB.First(&user, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User Not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
 	// remove user
 	if err := config.DB.Delete(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't delete user, internal error!"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User deleted"})
 }
 
-// GetUsers godoc
+// ToggleUserStatus flips the IsActive flag on a user account.
+// Deactivated users cannot log in but their data and order history are preserved.
+// This is the preferred way to revoke access without losing audit trails.
+//
+// @Summary Toggle user active status
+// @Description Activate or deactivate a user account without deleting it
+// @Tags Users
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} models.Users
+// @Failure 400 {object} map[string]string "Invalid ID"
+// @Failure 404 {object} map[string]string "User not found"
+// @Failure 500 {object} map[string]string "Internal error"
+// @Security BearerAuth
+// @Router /users/{id}/status [patch]
+func ToggleUserStatus(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	var user models.Users
+	if err := config.DB.First(&user, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	user.IsActive = !user.IsActive
+
+	if err := config.DB.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user status"})
+		return
+	}
+
+	config.DB.Preload("Role").First(&user, id)
+
+	c.JSON(http.StatusOK, user)
+}
+
+// ChangePassword updates a user's password after verifying the current one.
+// Non-admin users can only change their own password. Admins can change any user's password.
+// The new password must pass the same strength validation as during user creation.
+//
+// @Summary Change user password
+// @Description Change a user's password by providing the current and new password
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path int true "User ID"
+// @Param passwords body object true "Old and new password"
+// @Success 200 {object} map[string]string "Password updated"
+// @Failure 400 {object} map[string]string "Invalid data"
+// @Failure 403 {object} map[string]string "Forbidden"
+// @Failure 404 {object} map[string]string "User not found"
+// @Security BearerAuth
+// @Router /users/{id}/password [patch]
+func ChangePassword(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	// Non-admin users can only change their own password
+	currentUserID := c.GetInt("userID")
+	role := c.GetString("userRole")
+	if role != "admin" && currentUserID != id {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You can only change your own password"})
+		return
+	}
+
+	var input struct {
+		OldPassword string `json:"old_password" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
+		return
+	}
+
+	var user models.Users
+	if err := config.DB.First(&user, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Verify old password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.OldPassword)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Current password is incorrect"})
+		return
+	}
+
+	// Validate new password
+	if err := utils.ValidatePassword(input.NewPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Hash and save
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
+		return
+	}
+
+	if err := config.DB.Model(&user).Update("password", string(hashedPassword)).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password updated"})
+}
+
+// GetUsers returns all users with their associated role preloaded.
+// Password fields are excluded from the JSON response via the json:"-" tag on the model.
+//
 // @Summary Get all users
 // @Description Retrieve a list of all users with their roles
 // @Tags Users
@@ -191,14 +337,15 @@ func GetUsers(c *gin.Context) {
 	var users []models.Users
 
 	if err := config.DB.Preload("Role").Find(&users).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get User data"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
 		return
 	}
 
 	c.JSON(http.StatusOK, users)
 }
 
-// GetUser godoc
+// GetUser returns a single user by ID with their role preloaded.
+//
 // @Summary Get a user by ID
 // @Description Retrieve a single user by their ID
 // @Tags Users
@@ -218,17 +365,17 @@ func GetUser(c *gin.Context) {
 	id, err := strconv.Atoi(idParam)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	if err := config.DB.Preload("Role").First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User can't be found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 

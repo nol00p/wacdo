@@ -1,13 +1,14 @@
 App.registerPage('orders', async () => {
-  render('<div class="empty-msg">Loading orders...</div>');
+  render('<div class="loading">Loading orders...</div>');
 
-  let allProducts = [], allMenus = [], allCustomers = [], allOptions = {};
+  let allProducts = [], allMenus = [], allCustomers = [], allCategories = [], allOptions = {};
 
   try {
-    [allProducts, allMenus, allCustomers] = await Promise.all([
+    [allProducts, allMenus, allCustomers, allCategories] = await Promise.all([
       App.api('/products/').then(r => Array.isArray(r) ? r : []),
       App.api('/menus/').then(r => Array.isArray(r) ? r : []),
       App.api('/customers/').then(r => Array.isArray(r) ? r : []),
+      App.api('/categories/').then(r => Array.isArray(r) ? r : []),
     ]);
   } catch {}
 
@@ -37,11 +38,21 @@ App.registerPage('orders', async () => {
 
   async function loadOrders(statusFilter) {
     const el = document.getElementById('orders-view');
-    el.innerHTML = 'Loading...';
+    el.innerHTML = '<div class="loading">Loading...</div>';
     try {
       const url = statusFilter ? '/orders/?status=' + statusFilter : '/orders/';
       const orders = await App.api(url);
-      const list = Array.isArray(orders) ? orders : [];
+      let list = Array.isArray(orders) ? orders : [];
+
+      // Sort by scheduled_time ASC (nulls last) for preparation-relevant views
+      if (statusFilter === 'pending' || statusFilter === 'preparing') {
+        list = list.slice().sort((a, b) => {
+          if (!a.scheduled_time && !b.scheduled_time) return 0;
+          if (!a.scheduled_time) return 1;
+          if (!b.scheduled_time) return -1;
+          return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+        });
+      }
 
       if (!statusFilter) {
         // Kanban view
@@ -60,15 +71,16 @@ App.registerPage('orders', async () => {
       } else {
         // Table view
         el.innerHTML = `<div class="table-wrap"><table>
-          <thead><tr><th>#</th><th>Type</th><th>Customer</th><th>Status</th><th>Total</th><th>Items</th><th>Created</th><th>Actions</th></tr></thead>
+          <thead><tr><th>#</th><th>Type</th><th>Customer</th><th>Status</th><th>Total</th><th>Items</th><th>Scheduled</th><th>Created</th><th>Actions</th></tr></thead>
           <tbody>
             ${list.map(o => `<tr>
               <td class="text-accent">#${o.id}</td>
-              <td>${o.order_type}</td>
-              <td>${o.customer ? o.customer.name : '-'}</td>
+              <td>${esc(o.order_type)}</td>
+              <td>${o.customer ? esc(o.customer.name) : '-'}</td>
               <td>${statusBadge(o.status)}</td>
               <td>${fmtPrice(o.total_price)}</td>
               <td>${o.order_items ? o.order_items.length : 0}</td>
+              <td>${fmtDate(o.scheduled_time)}</td>
               <td>${fmtDate(o.created_at)}</td>
               <td class="inline-flex">${orderActionButtons(o)}</td>
             </tr>`).join('')}
@@ -79,12 +91,13 @@ App.registerPage('orders', async () => {
   }
 
   function renderKanbanCard(o) {
-    const notesSnippet = o.notes ? (o.notes.length > 50 ? o.notes.slice(0, 50) + '...' : o.notes) : '';
+    const notesSnippet = o.notes ? esc(o.notes.length > 50 ? o.notes.slice(0, 50) + '...' : o.notes) : '';
     return `<div class="kanban-card">
       <div class="order-id">#${o.id}</div>
-      <div class="order-meta">${o.order_type} | ${fmtPrice(o.total_price)}</div>
-      <div class="order-meta">${o.customer ? o.customer.name : 'Walk-in'}</div>
+      <div class="order-meta">${esc(o.order_type)} | ${fmtPrice(o.total_price)}</div>
+      <div class="order-meta">${o.customer ? esc(o.customer.name) : 'Walk-in'}</div>
       <div class="order-meta">${o.order_items ? o.order_items.length : 0} items</div>
+      ${o.scheduled_time ? `<div class="order-meta text-muted" style="font-size:11px;">Scheduled: ${fmtDate(o.scheduled_time)}</div>` : ''}
       ${notesSnippet ? `<div class="order-meta text-muted" style="font-size:11px;font-style:italic;">${notesSnippet}</div>` : ''}
       <div class="order-actions">${orderActionButtons(o)}</div>
     </div>`;
@@ -128,10 +141,11 @@ App.registerPage('orders', async () => {
       const o = await App.api('/orders/' + id);
       App.modal('Order #' + o.id, `
         <div class="mb-16">
-          <p><strong>Type:</strong> ${o.order_type}</p>
+          <p><strong>Type:</strong> ${esc(o.order_type)}</p>
           <p><strong>Status:</strong> ${statusBadge(o.status)}</p>
-          <p><strong>Customer:</strong> ${o.customer ? o.customer.name : 'Walk-in'}</p>
-          <p><strong>Notes:</strong> ${o.notes || '-'}</p>
+          <p><strong>Customer:</strong> ${o.customer ? esc(o.customer.name) : 'Walk-in'}</p>
+          <p><strong>Notes:</strong> ${esc(o.notes) || '-'}</p>
+          <p><strong>Scheduled:</strong> ${fmtDate(o.scheduled_time)}</p>
           <p><strong>Total:</strong> <span class="text-accent">${fmtPrice(o.total_price)}</span></p>
           <p><strong>Created:</strong> ${fmtDate(o.created_at)}</p>
         </div>
@@ -186,7 +200,10 @@ App.registerPage('orders', async () => {
             </div>
           </div>
         </div>
-        <div class="form-group"><label>Notes</label><input id="of-notes" placeholder="Special instructions..."></div>
+        <div class="form-row">
+          <div class="form-group grow"><label>Notes</label><input id="of-notes" placeholder="Special instructions..."></div>
+          <div class="form-group"><label>Scheduled Time</label><input type="datetime-local" id="of-scheduled-time"></div>
+        </div>
 
         <div class="section-title mt-16">Items</div>
         <div id="order-items"></div>
@@ -217,11 +234,17 @@ App.registerPage('orders', async () => {
             <option value="menu">Menu</option>
           </select>
         </div>
+        <div class="form-group" id="item-category-${id}">
+          <label>Category</label>
+          <select data-field="category_id" onchange="orderItemCategoryChange(${id}, this.value)">
+            <option value="">Select category...</option>
+            ${allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+        </div>
         <div class="form-group grow">
           <label>Item</label>
-          <select data-field="item_id" onchange="orderItemSelected(${id}, this.value)">
-            <option value="">Select...</option>
-            ${allProducts.map(p => `<option value="${p.id}">${p.name} (${fmtPrice(p.price)})</option>`).join('')}
+          <select data-field="item_id" onchange="orderItemSelected(${id}, this.value)" disabled>
+            <option value="">Select category first...</option>
           </select>
         </div>
         <div class="form-group">
@@ -241,11 +264,44 @@ App.registerPage('orders', async () => {
       item.product_id = null;
       item.menu_id = null;
       item.option_values = [];
+
+      const catGroup = document.getElementById('item-category-' + id);
       const sel = document.querySelector(`#item-${id} [data-field="item_id"]`);
-      const source = type === 'product' ? allProducts : allMenus;
-      sel.innerHTML = `<option value="">Select...</option>
-        ${source.map(x => `<option value="${x.id}">${x.name} (${fmtPrice(x.price)})</option>`).join('')}`;
+
+      if (type === 'product') {
+        catGroup.style.display = '';
+        const catSel = catGroup.querySelector('select');
+        catSel.value = '';
+        sel.innerHTML = '<option value="">Select category first...</option>';
+        sel.disabled = true;
+      } else {
+        catGroup.style.display = 'none';
+        sel.disabled = false;
+        sel.innerHTML = `<option value="">Select...</option>
+          ${allMenus.map(x => `<option value="${x.id}">${x.name} (${fmtPrice(x.price)})</option>`).join('')}`;
+      }
       document.getElementById('item-options-' + id).innerHTML = '';
+      updatePrice();
+    };
+
+    window.orderItemCategoryChange = function(id, categoryId) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      item.product_id = null;
+      item.option_values = [];
+
+      const sel = document.querySelector(`#item-${id} [data-field="item_id"]`);
+      document.getElementById('item-options-' + id).innerHTML = '';
+
+      if (!categoryId) {
+        sel.innerHTML = '<option value="">Select category first...</option>';
+        sel.disabled = true;
+      } else {
+        const filtered = allProducts.filter(p => p.category_id === Number(categoryId));
+        sel.innerHTML = `<option value="">Select...</option>
+          ${filtered.map(p => `<option value="${p.id}">${p.name} (${fmtPrice(p.price)})</option>`).join('')}`;
+        sel.disabled = false;
+      }
       updatePrice();
     };
 
@@ -273,19 +329,37 @@ App.registerPage('orders', async () => {
         const optList = Array.isArray(opts) ? opts : [];
         if (optList.length === 0) { el.innerHTML = ''; return; }
 
-        let html = '<label class="text-muted" style="font-size:12px">Options:</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+        let html = '';
         for (const opt of optList) {
           let vals;
           try { vals = await App.api('/options/' + opt.id + '/values/'); } catch { vals = []; }
           const valList = Array.isArray(vals) ? vals : [];
-          for (const v of valList) {
-            html += `<label style="font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;">
-              <input type="checkbox" value="${v.id}" data-item-id="${itemId}" data-price="${v.option_price}" onchange="toggleItemOption(${itemId})">
-              ${v.value} ${v.option_price > 0 ? '(+' + fmtPrice(v.option_price) + ')' : ''}
-            </label>`;
+          if (valList.length === 0) continue;
+
+          const isSingle = opt.is_unique === 'single';
+          const inputType = isSingle ? 'radio' : 'checkbox';
+          const inputName = isSingle ? `name="opt-${itemId}-${opt.id}"` : '';
+
+          html += `<div class="option-group">
+            <label class="option-group-title">${opt.name}${opt.is_required ? ' *' : ''}</label>`;
+
+          if (isSingle) {
+            html += '<div class="option-values-single">';
+            for (const v of valList) {
+              const priceTag = v.option_price > 0 ? ' <span class="option-price">(+' + fmtPrice(v.option_price) + ')</span>' : '';
+              html += `<label class="option-label"><input type="${inputType}" ${inputName} value="${v.id}" data-item-id="${itemId}" data-price="${v.option_price}" onchange="toggleItemOption(${itemId})">${v.value}${priceTag}</label>`;
+            }
+            html += '</div>';
+          } else {
+            html += '<div class="option-values-grid">';
+            for (const v of valList) {
+              const priceTag = v.option_price > 0 ? ' <span class="option-price">(+' + fmtPrice(v.option_price) + ')</span>' : '';
+              html += `<label class="option-label"><input type="${inputType}" value="${v.id}" data-item-id="${itemId}" data-price="${v.option_price}" onchange="toggleItemOption(${itemId})">${v.value}${priceTag}</label>`;
+            }
+            html += '</div>';
           }
+          html += '</div>';
         }
-        html += '</div>';
         el.innerHTML = html;
       } catch { el.innerHTML = ''; }
     }
@@ -293,8 +367,8 @@ App.registerPage('orders', async () => {
     window.toggleItemOption = function(itemId) {
       const item = items.find(i => i.id === itemId);
       if (!item) return;
-      const checkboxes = document.querySelectorAll(`#item-options-${itemId} input[type="checkbox"]:checked`);
-      item.option_values = Array.from(checkboxes).map(cb => ({
+      const checked = document.querySelectorAll(`#item-options-${itemId} input:checked`);
+      item.option_values = Array.from(checked).map(cb => ({
         option_value_id: Number(cb.value),
         price: Number(cb.dataset.price)
       }));
@@ -337,6 +411,7 @@ App.registerPage('orders', async () => {
       const custVal = document.getElementById('of-customer').value;
       const orderType = document.querySelector('input[name="order_type"]:checked').value;
       const notes = document.getElementById('of-notes').value;
+      const scheduledRaw = document.getElementById('of-scheduled-time').value;
 
       const orderItems = items.filter(i => i.product_id || i.menu_id).map(i => {
         const obj = { quantity: i.quantity };
@@ -347,7 +422,6 @@ App.registerPage('orders', async () => {
         }
         return obj;
       });
-
       if (orderItems.length === 0) return App.toast('Add at least one item', 'error');
 
       const body = {
@@ -356,6 +430,7 @@ App.registerPage('orders', async () => {
         order_items: orderItems,
       };
       if (custVal) body.customer_id = Number(custVal);
+      if (scheduledRaw) body.scheduled_time = new Date(scheduledRaw).toISOString();
 
       try {
         await App.api('/orders/', { method: 'POST', body });

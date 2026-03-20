@@ -1,3 +1,4 @@
+// Package config handles application configuration including database connection, CORS, security headers, and rate limiting.
 package config
 
 import (

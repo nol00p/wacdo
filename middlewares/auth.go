@@ -1,3 +1,4 @@
+// Package middlewares provides HTTP middleware for authentication and authorization.
 package middlewares
 
 import (
@@ -14,13 +15,13 @@ func Authentication() gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized Accesss"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized access"})
 			return
 		}
 
-		tokeString := strings.TrimPrefix(authHeader, "Bearer ")
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		token, err := jwt.Parse(tokeString, func(t *jwt.Token) (interface{}, error) {
+		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrTokenMalformed
 			}
@@ -32,14 +33,22 @@ func Authentication() gin.HandlerFunc {
 			return
 		}
 
-		claim, ok := token.Claims.(jwt.MapClaims)
+		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token Unreadable"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token Unreadable"})
 			return
 		}
-		userID := int(claim["UserID"].(float64))
 
-		c.Set("userID", userID)
+		userID, ok := claims["UserID"].(float64)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token Unreadable"})
+			return
+		}
+
+		roleName, _ := claims["RoleName"].(string)
+
+		c.Set("userID", int(userID))
+		c.Set("userRole", roleName)
 
 		c.Next()
 	}

@@ -8,6 +8,20 @@ const App = {
   clearToken(){ localStorage.removeItem('wacdo_token'); },
   isLoggedIn(){ return !!this.getToken(); },
 
+  // Decode JWT payload to read claims (UserID, RoleName)
+  getTokenPayload() {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      const payload = token.split('.')[1];
+      return JSON.parse(atob(payload));
+    } catch { return null; }
+  },
+  getRole() {
+    const p = this.getTokenPayload();
+    return p ? (p.RoleName || '') : '';
+  },
+
   // --- API helper ---
   async api(path, opts = {}) {
     const url = this.API + path;
@@ -23,6 +37,7 @@ const App = {
 
     if (res.status === 401) {
       this.clearToken();
+      this.toast('Session expired. Please log in again.', 'error');
       this.navigate('login');
       throw new Error('Session expired');
     }
@@ -90,6 +105,22 @@ const App = {
       sidebar.classList.remove('hidden');
       topbar.classList.remove('hidden');
       document.getElementById('content').style.padding = '';
+
+      // Show user role in topbar
+      const role = this.getRole();
+      document.getElementById('user-label').textContent = role ? role : '';
+
+      // Hide sidebar links based on role
+      const access = {
+        admin:       ['dashboard', 'products', 'menus', 'orders', 'customers', 'users', 'privacy'],
+        accueil:     ['dashboard', 'orders', 'customers', 'privacy'],
+        preparation: ['dashboard', 'orders', 'privacy'],
+      };
+      const allowed = access[role] || [];
+      document.querySelectorAll('#sidebar-nav a').forEach(a => {
+        const page = a.dataset.page;
+        a.style.display = (allowed.length === 0 || allowed.includes(page)) ? '' : 'none';
+      });
     }
 
     // Update active nav
@@ -144,6 +175,14 @@ const App = {
 /* ===== Helper: render HTML into content ===== */
 function render(html) {
   document.getElementById('content').innerHTML = html;
+}
+
+/* ===== Helper: escape HTML to prevent XSS ===== */
+function esc(s) {
+  if (!s) return '';
+  const div = document.createElement('div');
+  div.textContent = String(s);
+  return div.innerHTML;
 }
 
 /* ===== Helper: format price ===== */

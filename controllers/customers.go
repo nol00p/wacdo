@@ -11,7 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateCustomer godoc
+// CreateCustomer registers a new customer.
+// If a phone number is provided, it must be unique to prevent duplicate customer records.
+//
 // @Summary Create a new customer
 // @Description Create a new customer with the provided details
 // @Tags Customers
@@ -26,7 +28,7 @@ func CreateCustomer(c *gin.Context) {
 	var customer models.Customer
 
 	if err := c.ShouldBindJSON(&customer); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
 		return
 	}
 
@@ -47,7 +49,8 @@ func CreateCustomer(c *gin.Context) {
 	c.JSON(http.StatusOK, customer)
 }
 
-// GetCustomers godoc
+// GetCustomers returns all customers. Supports GDPR right of consultation.
+//
 // @Summary Get all customers
 // @Description Retrieve a list of all customers
 // @Tags Customers
@@ -60,14 +63,15 @@ func GetCustomers(c *gin.Context) {
 	var customers []models.Customer
 
 	if err := config.DB.Find(&customers).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get customers"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve customers"})
 		return
 	}
 
 	c.JSON(http.StatusOK, customers)
 }
 
-// GetCustomer godoc
+// GetCustomer returns a single customer by ID.
+//
 // @Summary Get a customer by ID
 // @Description Retrieve a single customer by their ID
 // @Tags Customers
@@ -103,7 +107,10 @@ func GetCustomer(c *gin.Context) {
 	c.JSON(http.StatusOK, customer)
 }
 
-// UpdateCustomer godoc
+// UpdateCustomer modifies an existing customer's details.
+// Validates that the new phone number doesn't conflict with another customer.
+// Supports GDPR right of modification.
+//
 // @Summary Update a customer
 // @Description Update an existing customer by ID
 // @Tags Customers
@@ -159,7 +166,9 @@ func UpdateCustomer(c *gin.Context) {
 	c.JSON(http.StatusOK, customer)
 }
 
-// DeleteCustomer godoc
+// DeleteCustomer permanently removes a customer record.
+// Supports GDPR right of deletion (droit de suppression).
+//
 // @Summary Delete a customer
 // @Description Delete a customer by ID
 // @Tags Customers

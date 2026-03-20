@@ -1,3 +1,4 @@
+// Package utils provides shared utility functions such as password validation.
 package utils
 
 import (

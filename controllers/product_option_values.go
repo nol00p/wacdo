@@ -11,7 +11,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateOptionValue godoc
+// CreateOptionValue creates one or more values for a product option in batch.
+// Each value must be unique within its option. The option must exist.
+// Example: for a "Size" option, create values ["Small", "Medium", "Large"].
+//
 // @Summary Create option values
 // @Description Create one or more values for a product option (e.g. "Small", "Medium", "Large" for Size)
 // @Tags Option Values
@@ -63,7 +66,8 @@ func CreateOptionValue(c *gin.Context) {
 	c.JSON(http.StatusOK, optionValues)
 }
 
-// DeleteOptionValue godoc
+// DeleteOptionValue removes a single option value.
+//
 // @Summary Delete an option value
 // @Description Delete an option value by ID
 // @Tags Option Values
@@ -97,8 +101,8 @@ func DeleteOptionValue(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Option value deleted"})
 }
 
-// GetOptionValues godoc
-// GetOptionValue godoc
+// GetOptionValue returns a single option value by ID.
+//
 // @Summary Get an option value by ID
 // @Description Retrieve a single option value by its ID
 // @Tags Option Values
@@ -132,7 +136,9 @@ func GetOptionValue(c *gin.Context) {
 	c.JSON(http.StatusOK, optionValue)
 }
 
-// UpdateOptionValue godoc
+// UpdateOptionValue modifies an existing option value.
+// Validates that the new value doesn't conflict with another value for the same option.
+//
 // @Summary Update an option value
 // @Description Update an existing option value by ID
 // @Tags Option Values
@@ -187,7 +193,9 @@ func UpdateOptionValue(c *gin.Context) {
 	c.JSON(http.StatusOK, optionValue)
 }
 
-// GetValuesByOption godoc
+// GetValuesByOption returns all values for a given option.
+// The option must exist.
+//
 // @Summary Get values by option
 // @Description Retrieve all values belonging to a specific option
 // @Tags Option Values
@@ -216,7 +224,7 @@ func GetValuesByOption(c *gin.Context) {
 
 	var values []models.OptionValues
 	if err := config.DB.Where("option_id = ?", optionID).Find(&values).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get option values"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve option values"})
 		return
 	}
 

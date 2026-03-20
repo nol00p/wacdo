@@ -2,21 +2,30 @@ package routes
 
 import (
 	"wacdo/controllers"
+	"wacdo/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
 func MenuRoutes(router *gin.Engine) {
-	routesGroup := router.Group("/menus")
+	// Read access: all roles (needed for order creation)
+	readGroup := router.Group("/menus")
+	readGroup.Use(middlewares.Authentication())
 	{
-		routesGroup.POST("/", controllers.CreateMenu)
-		routesGroup.GET("/", controllers.GetMenus)
-		routesGroup.GET("/:id", controllers.GetMenu)
-		routesGroup.PUT("/:id", controllers.UpdateMenu)
-		routesGroup.DELETE("/:id", controllers.DeleteMenu)
-		routesGroup.PATCH("/:id/availability", controllers.ToggleMenuAvailability)
-		routesGroup.POST("/:id/products/", controllers.AddProductToMenu)
-		routesGroup.GET("/:id/products/", controllers.GetMenuProducts)
-		routesGroup.DELETE("/products/:id", controllers.RemoveProductFromMenu)
+		readGroup.GET("/", controllers.GetMenus)
+		readGroup.GET("/:id", controllers.GetMenu)
+		readGroup.GET("/:id/products/", controllers.GetMenuProducts)
+	}
+
+	// Write access: admin only
+	writeGroup := router.Group("/menus")
+	writeGroup.Use(middlewares.Authentication(), middlewares.Authorization("admin"))
+	{
+		writeGroup.POST("/", controllers.CreateMenu)
+		writeGroup.PUT("/:id", controllers.UpdateMenu)
+		writeGroup.DELETE("/:id", controllers.DeleteMenu)
+		writeGroup.PATCH("/:id/availability", controllers.ToggleMenuAvailability)
+		writeGroup.POST("/:id/products/", controllers.AddProductToMenu)
+		writeGroup.DELETE("/products/:id", controllers.RemoveProductFromMenu)
 	}
 }

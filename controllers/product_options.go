@@ -11,7 +11,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateOption godoc
+// CreateOption adds a customization group to a product (e.g. "Size", "Toppings").
+// The referenced product must exist. IsUnique must be "single" (pick one) or "multiple" (pick many).
+// Option names must be unique per product.
+//
 // @Summary Create a new product option
 // @Description Create a new option for a product (e.g. Size, Toppings)
 // @Tags Product Options
@@ -58,7 +61,8 @@ func CreateOption(c *gin.Context) {
 	c.JSON(http.StatusOK, option)
 }
 
-// DeleteOption godoc
+// DeleteOption removes a product option and all its associated values.
+//
 // @Summary Delete a product option
 // @Description Delete a product option by ID (also deletes its values)
 // @Tags Product Options
@@ -98,7 +102,8 @@ func DeleteOption(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Option deleted"})
 }
 
-// GetOptions godoc
+// GetOptions returns all product options across all products.
+//
 // @Summary Get all product options
 // @Description Retrieve a list of all product options
 // @Tags Product Options
@@ -111,14 +116,15 @@ func GetOptions(c *gin.Context) {
 	var options []models.ProductOptions
 
 	if err := config.DB.Find(&options).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get options"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve options"})
 		return
 	}
 
 	c.JSON(http.StatusOK, options)
 }
 
-// GetOption godoc
+// GetOption returns a single product option by ID.
+//
 // @Summary Get a product option by ID
 // @Description Retrieve a single product option by its ID
 // @Tags Product Options
@@ -152,7 +158,9 @@ func GetOption(c *gin.Context) {
 	c.JSON(http.StatusOK, option)
 }
 
-// UpdateOption godoc
+// UpdateOption modifies an existing product option.
+// Validates that the new name doesn't conflict with another option for the same product.
+//
 // @Summary Update a product option
 // @Description Update an existing product option by ID
 // @Tags Product Options
@@ -213,7 +221,9 @@ func UpdateOption(c *gin.Context) {
 	c.JSON(http.StatusOK, option)
 }
 
-// GetOptionsByProduct godoc
+// GetOptionsByProduct returns all options for a given product.
+// The product must exist.
+//
 // @Summary Get options by product
 // @Description Retrieve all options belonging to a specific product
 // @Tags Product Options
@@ -242,7 +252,7 @@ func GetOptionsByProduct(c *gin.Context) {
 
 	var options []models.ProductOptions
 	if err := config.DB.Where("product_id = ?", productID).Find(&options).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get options"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve options"})
 		return
 	}
 

@@ -39,8 +39,8 @@ App.registerPage('products', async () => {
             <tbody>
               ${list.map(c => `<tr>
                 <td>${c.id}</td>
-                <td>${c.name}</td>
-                <td class="text-muted">${c.description || '-'}</td>
+                <td>${esc(c.name)}</td>
+                <td class="text-muted">${esc(c.description) || '-'}</td>
                 <td>${c.display_order || 0}</td>
                 <td class="inline-flex">
                   <button class="btn btn-sm" onclick="showCategoryForm(${c.id})">Edit</button>
@@ -140,8 +140,8 @@ App.registerPage('products', async () => {
   function renderProductRows(list) {
     return list.map(p => `<tr>
       <td>${p.id}</td>
-      <td>${p.name}</td>
-      <td>${p.category ? p.category.name : p.category_id}</td>
+      <td>${p.image_url ? `<img src="${esc(p.image_url)}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;vertical-align:middle;margin-right:8px;">` : ''}${esc(p.name)}</td>
+      <td>${p.category ? esc(p.category.name) : p.category_id}</td>
       <td>${fmtPrice(p.price)}</td>
       <td>
         <input type="number" value="${p.stock_quantity}" style="width:60px;padding:4px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);"
@@ -177,7 +177,7 @@ App.registerPage('products', async () => {
   window.showProductForm = async function(id) {
     const cats = await App.api('/categories/');
     const catList = Array.isArray(cats) ? cats : [];
-    let prod = { name: '', description: '', price: 0, category_id: '', stock_quantity: 0, preparation_time: 0, is_available: true };
+    let prod = { name: '', description: '', price: 0, category_id: '', stock_quantity: 0, preparation_time: 0, image_url: '', is_available: true };
     if (id) {
       try { prod = await App.api('/products/' + id); } catch { return App.toast('Failed to load', 'error'); }
     }
@@ -198,6 +198,7 @@ App.registerPage('products', async () => {
           <div class="form-group"><label>Stock</label><input type="number" id="pf-stock" value="${prod.stock_quantity}"></div>
           <div class="form-group"><label>Prep Time (min)</label><input type="number" id="pf-prep" value="${prod.preparation_time || 0}"></div>
         </div>
+        <div class="form-group"><label>Image URL</label><input id="pf-img" value="${prod.image_url || ''}" placeholder="https://..."></div>
         <button type="submit" class="btn btn-block">${id ? 'Update' : 'Create'}</button>
       </form>
     `);
@@ -213,6 +214,7 @@ App.registerPage('products', async () => {
             price: Number(document.getElementById('pf-price').value),
             stock_quantity: Number(document.getElementById('pf-stock').value),
             preparation_time: Number(document.getElementById('pf-prep').value),
+            image_url: document.getElementById('pf-img').value,
             is_available: true,
           }
         });
@@ -273,7 +275,7 @@ App.registerPage('products', async () => {
         <div class="card mb-8">
           <div class="flex-between mb-8">
             <div>
-              <strong>${o.name}</strong>
+              <strong>${esc(o.name)}</strong>
               <span class="text-muted" style="margin-left:8px">${o.is_unique} | ${o.is_required ? 'Required' : 'Optional'}</span>
             </div>
             <div class="inline-flex">
@@ -300,7 +302,7 @@ App.registerPage('products', async () => {
       if (list.length === 0) { el.innerHTML = '<p class="text-muted">No values</p>'; return; }
       el.innerHTML = `<table class="sub-table"><thead><tr><th>Value</th><th>Price</th><th>Actions</th></tr></thead><tbody>
         ${list.map(v => `<tr>
-          <td>${v.value}</td>
+          <td>${esc(v.value)}</td>
           <td>${fmtPrice(v.option_price)}</td>
           <td class="inline-flex">
             <button class="btn btn-sm" onclick="showValueForm(${optionId}, ${productId}, ${v.id})">Edit</button>

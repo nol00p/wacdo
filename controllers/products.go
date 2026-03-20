@@ -11,7 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateProduct godoc
+// CreateProduct adds a new product to the catalog.
+// The referenced category must exist, and the product name must be unique.
+//
 // @Summary Create a new product
 // @Description Create a new product with the provided details
 // @Tags Products
@@ -55,7 +57,8 @@ func CreateProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
-// DeleteProduct godoc
+// DeleteProduct permanently removes a product from the catalog.
+//
 // @Summary Delete a product
 // @Description Delete a product by ID
 // @Tags Products
@@ -89,7 +92,8 @@ func DeleteProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Product deleted"})
 }
 
-// GetProducts godoc
+// GetProducts returns all products with their category preloaded.
+//
 // @Summary Get all products
 // @Description Retrieve a list of all products with their categories
 // @Tags Products
@@ -103,14 +107,15 @@ func GetProducts(c *gin.Context) {
 
 	// Preload the Category to get the details with the product
 	if err := config.DB.Preload("Category").Find(&products).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get products"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve products"})
 		return
 	}
 
 	c.JSON(http.StatusOK, products)
 }
 
-// GetProduct godoc
+// GetProduct returns a single product by ID with its category preloaded.
+//
 // @Summary Get a product by ID
 // @Description Retrieve a single product by its ID
 // @Tags Products
@@ -144,7 +149,10 @@ func GetProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
-// UpdateProduct godoc
+// UpdateProduct modifies an existing product.
+// Validates that the new name doesn't conflict with another product, and that the
+// new category (if changed) exists.
+//
 // @Summary Update a product
 // @Description Update an existing product by ID
 // @Tags Products
@@ -207,7 +215,9 @@ func UpdateProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
-// GetProductsByCategory godoc
+// GetProductsByCategory returns all products belonging to a given category.
+// The category must exist.
+//
 // @Summary Get products by category
 // @Description Retrieve all products belonging to a specific category
 // @Tags Products
@@ -236,14 +246,16 @@ func GetProductsByCategory(c *gin.Context) {
 
 	var products []models.Products
 	if err := config.DB.Preload("Category").Where("category_id = ?", categoryID).Find(&products).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get products"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve products"})
 		return
 	}
 
 	c.JSON(http.StatusOK, products)
 }
 
-// ToggleProductAvailability godoc
+// ToggleProductAvailability flips the is_available flag on a product.
+// Unavailable products cannot be added to new orders.
+//
 // @Summary Toggle product availability
 // @Description Quick toggle for is_available field
 // @Tags Products
@@ -281,7 +293,8 @@ func ToggleProductAvailability(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
-// UpdateProductStock godoc
+// UpdateProductStock sets the stock quantity for a product.
+//
 // @Summary Update product stock
 // @Description Update the stock quantity for a product
 // @Tags Products

@@ -29,14 +29,15 @@ type OrderInput struct {
 	OrderType     string           `json:"order_type"`
 	Notes         string           `json:"notes"`
 	ScheduledTime *time.Time       `json:"scheduled_time"`
-	Items         []OrderItemInput `json:"items"`
+	Items         []OrderItemInput `json:"order_items"`
 }
 
 type StatusInput struct {
 	Status string `json:"status"`
 }
 
-// orderPreloads applies the standard set of preloads for order queries.
+// orderPreloads applies the standard set of relationship preloads for order queries.
+// This ensures all nested data (customer, creator, items, products, menus, options) is loaded.
 func orderPreloads(db *gorm.DB) *gorm.DB {
 	return db.
 		Preload("Customer").
@@ -46,7 +47,13 @@ func orderPreloads(db *gorm.DB) *gorm.DB {
 		Preload("OrderItems.OrderItemOptions.OptionValue")
 }
 
-// CreateOrder godoc
+// CreateOrder creates a new order with server-side price calculation.
+// All pricing is computed from the database inside a transaction to ensure consistency:
+// - Each item must reference exactly one product or one menu (not both)
+// - Product/menu must be available; option values must belong to the item's product
+// - Unit prices, option prices, item totals, and the order total are all computed server-side
+// The order starts in "pending" status. The authenticated user is recorded as the creator.
+//
 // @Summary Create a new order
 // @Description Create an order with items and options. Prices are computed server-side.
 // @Tags Orders
@@ -90,10 +97,9 @@ func CreateOrder(c *gin.Context) {
 
 	err := config.DB.Transaction(func(tx *gorm.DB) error {
 		// Create order record
-		// TODO: CreatedByID should come from JWT context once auth middleware is active
 		order := models.Order{
 			CustomerID:    input.CustomerID,
-			CreatedByID:   1,
+			CreatedByID:   uint(c.GetInt("userID")),
 			OrderType:     input.OrderType,
 			Status:        "pending",
 			Notes:         input.Notes,
@@ -215,7 +221,9 @@ func CreateOrder(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-// GetOrders godoc
+// GetOrders returns all orders with optional status filtering.
+// Use ?status=pending to filter. All relationships are preloaded.
+//
 // @Summary Get all orders
 // @Description Retrieve all orders with optional status filter
 // @Tags Orders
@@ -242,7 +250,8 @@ func GetOrders(c *gin.Context) {
 	c.JSON(http.StatusOK, orders)
 }
 
-// GetOrder godoc
+// GetOrder returns a single order by ID with all items, options, and relationships preloaded.
+//
 // @Summary Get an order by ID
 // @Description Retrieve a single order with all its items and options
 // @Tags Orders
@@ -275,7 +284,11 @@ func GetOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, order)
 }
 
-// UpdateOrderStatus godoc
+// UpdateOrderStatus advances an order through the preparation workflow.
+// Enforces a strict state machine: pending→preparing→prepared→delivered.
+// Invalid transitions (e.g. pending→delivered) are rejected.
+// Cancellation is handled separately by CancelOrder.
+//
 // @Summary Update order status
 // @Description Update the status of an order with valid transition enforcement
 // @Tags Orders
@@ -345,7 +358,9 @@ func UpdateOrderStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// CancelOrder godoc
+// CancelOrder cancels an order, but only if it is still in "pending" status.
+// Once preparation has started, cancellation is no longer allowed.
+//
 // @Summary Cancel an order
 // @Description Cancel an order (only if status is pending)
 // @Tags Orders
@@ -394,7 +409,9 @@ func CancelOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// GetOrdersByCustomer godoc
+// GetOrdersByCustomer returns all orders linked to a specific customer.
+// The customer must exist. Useful for viewing a customer's order history.
+//
 // @Summary Get orders by customer
 // @Description Retrieve all orders for a specific customer
 // @Tags Orders

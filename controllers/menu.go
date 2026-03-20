@@ -11,7 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateMenu godoc
+// CreateMenu adds a new combo menu to the system.
+// Menu names must be unique. Products are added separately via AddProductToMenu.
+//
 // @Summary Create a new menu
 // @Description Create a new menu with the provided details
 // @Tags Menus
@@ -45,7 +47,8 @@ func CreateMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, menu)
 }
 
-// GetMenus godoc
+// GetMenus returns all menus with their associated products preloaded.
+//
 // @Summary Get all menus
 // @Description Retrieve a list of all menus with their products
 // @Tags Menus
@@ -59,14 +62,15 @@ func GetMenus(c *gin.Context) {
 
 	// pre load menu product to get the list of products in the menu.
 	if err := config.DB.Preload("MenuProducts").Find(&menus).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get menus"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve menus"})
 		return
 	}
 
 	c.JSON(http.StatusOK, menus)
 }
 
-// GetMenu godoc
+// GetMenu returns a single menu by ID with its products preloaded.
+//
 // @Summary Get a menu by ID
 // @Description Retrieve a single menu by its ID with associated products
 // @Tags Menus
@@ -103,7 +107,9 @@ func GetMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, menu)
 }
 
-// UpdateMenu godoc
+// UpdateMenu modifies an existing menu.
+// Validates that the new name doesn't conflict with another menu.
+//
 // @Summary Update a menu
 // @Description Update an existing menu by ID
 // @Tags Menus
@@ -156,7 +162,8 @@ func UpdateMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, menu)
 }
 
-// DeleteMenu godoc
+// DeleteMenu permanently removes a menu and its product associations (via cascade).
+//
 // @Summary Delete a menu
 // @Description Delete a menu by ID
 // @Tags Menus
@@ -190,7 +197,9 @@ func DeleteMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Menu deleted"})
 }
 
-// ToggleMenuAvailability godoc
+// ToggleMenuAvailability flips the is_available flag on a menu.
+// Unavailable menus cannot be added to new orders.
+//
 // @Summary Toggle menu availability
 // @Description Quick toggle for is_available field
 // @Tags Menus
@@ -228,7 +237,9 @@ func ToggleMenuAvailability(c *gin.Context) {
 	c.JSON(http.StatusOK, menu)
 }
 
-// AddProductToMenu godoc
+// AddProductToMenu links a product to a menu with a specified quantity.
+// Both the menu and product must exist, and the product must not already be in the menu.
+//
 // @Summary Add a product to a menu
 // @Description Add a product to a specific menu
 // @Tags Menus
@@ -289,7 +300,8 @@ func AddProductToMenu(c *gin.Context) {
 	c.JSON(http.StatusOK, input)
 }
 
-// GetMenuProducts godoc
+// GetMenuProducts returns all product associations for a given menu.
+//
 // @Summary Get products in a menu
 // @Description Retrieve all products belonging to a specific menu
 // @Tags Menus
@@ -317,14 +329,15 @@ func GetMenuProducts(c *gin.Context) {
 
 	var menuProducts []models.MenuProduct
 	if err := config.DB.Where("menu_id = ?", menuID).Find(&menuProducts).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get menu products"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve menu products"})
 		return
 	}
 
 	c.JSON(http.StatusOK, menuProducts)
 }
 
-// RemoveProductFromMenu godoc
+// RemoveProductFromMenu deletes the link between a product and a menu.
+//
 // @Summary Remove a product from a menu
 // @Description Remove a product from a menu by menu product ID
 // @Tags Menus

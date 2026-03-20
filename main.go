@@ -64,6 +64,7 @@ func main() {
 		&models.ProductOptions{},
 		&models.OptionValues{},
 		&models.Menu{},
+		&models.MenuProduct{},
 		&models.Customer{},
 		&models.Order{},
 		&models.OrderItem{},

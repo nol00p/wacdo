@@ -11,7 +11,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateRole godoc
+// CreateRole adds a new role to the system.
+// Role names must be unique — duplicate names are rejected.
+// Expected roles are "admin", "accueil", and "preparation".
+//
 // @Summary Create a new role
 // @Description Create a new role with the provided details
 // @Tags Roles
@@ -26,7 +29,7 @@ func CreateRole(c *gin.Context) {
 	var role models.Roles
 
 	if err := c.ShouldBindJSON(&role); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Data"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
 		return
 	}
 
@@ -39,14 +42,16 @@ func CreateRole(c *gin.Context) {
 
 	// Create
 	if err := config.DB.Create(&role).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Role couln't not be reated"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Role couldn't be created"})
 		return
 	}
 
 	c.JSON(http.StatusOK, role)
 }
 
-// DeleteRole godoc
+// DeleteRole removes a role from the system.
+// A role cannot be deleted if any users are still assigned to it — reassign users first.
+//
 // @Summary Delete a role
 // @Description Delete a role by ID (only if not in use by any users)
 // @Tags Roles
@@ -93,7 +98,8 @@ func DeleteRole(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Role deleted"})
 }
 
-// GetRoles godoc
+// GetRoles returns all available roles.
+//
 // @Summary Get all roles
 // @Description Retrieve a list of all roles
 // @Tags Roles
@@ -107,14 +113,15 @@ func GetRoles(c *gin.Context) {
 	var roles []models.Roles
 
 	if err := config.DB.Find(&roles).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Can't get Role data"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve roles"})
 		return
 	}
 
 	c.JSON(http.StatusOK, roles)
 }
 
-// GetRole godoc
+// GetRole returns a single role by ID.
+//
 // @Summary Get a role by ID
 // @Description Retrieve a single role by its ID
 // @Tags Roles
@@ -134,17 +141,17 @@ func GetRole(c *gin.Context) {
 	id, err := strconv.Atoi(idParam)
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
 	}
 
 	if err := config.DB.First(&role, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Role can't be found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Role not found"})
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 

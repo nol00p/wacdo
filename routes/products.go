@@ -2,54 +2,87 @@ package routes
 
 import (
 	"wacdo/controllers"
+	"wacdo/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
 func ProductRoutes(router *gin.Engine) {
-	routesGroup := router.Group("/products")
+	// Read access: all roles (needed for order creation)
+	readGroup := router.Group("/products")
+	readGroup.Use(middlewares.Authentication())
 	{
-		routesGroup.POST("/", controllers.CreateProduct)
-		routesGroup.DELETE("/:id", controllers.DeleteProduct)
-		routesGroup.GET("/", controllers.GetProducts)
-		routesGroup.GET("/:id", controllers.GetProduct)
-		routesGroup.PUT("/:id", controllers.UpdateProduct)
-		routesGroup.GET("/category/:category_id", controllers.GetProductsByCategory)
-		routesGroup.PATCH("/:id/availability", controllers.ToggleProductAvailability)
-		routesGroup.PATCH("/:id/stock", controllers.UpdateProductStock)
+		readGroup.GET("/", controllers.GetProducts)
+		readGroup.GET("/:id", controllers.GetProduct)
+		readGroup.GET("/category/:category_id", controllers.GetProductsByCategory)
+	}
+
+	// Write access: admin only
+	writeGroup := router.Group("/products")
+	writeGroup.Use(middlewares.Authentication(), middlewares.Authorization("admin"))
+	{
+		writeGroup.POST("/", controllers.CreateProduct)
+		writeGroup.PUT("/:id", controllers.UpdateProduct)
+		writeGroup.DELETE("/:id", controllers.DeleteProduct)
+		writeGroup.PATCH("/:id/availability", controllers.ToggleProductAvailability)
+		writeGroup.PATCH("/:id/stock", controllers.UpdateProductStock)
 	}
 }
 
 func CategoriesRoutes(router *gin.Engine) {
-	routesGroup := router.Group("/categories")
+	// Read access: all roles
+	readGroup := router.Group("/categories")
+	readGroup.Use(middlewares.Authentication())
 	{
-		routesGroup.POST("/", controllers.CreateCategory)
-		routesGroup.DELETE("/:id", controllers.DeleteCategory)
-		routesGroup.GET("/", controllers.GetCategories)
-		routesGroup.GET("/:id", controllers.GetCategory)
-		routesGroup.PUT("/:id", controllers.UpdateCategory)
+		readGroup.GET("/", controllers.GetCategories)
+		readGroup.GET("/:id", controllers.GetCategory)
+	}
+
+	// Write access: admin only
+	writeGroup := router.Group("/categories")
+	writeGroup.Use(middlewares.Authentication(), middlewares.Authorization("admin"))
+	{
+		writeGroup.POST("/", controllers.CreateCategory)
+		writeGroup.PUT("/:id", controllers.UpdateCategory)
+		writeGroup.DELETE("/:id", controllers.DeleteCategory)
 	}
 }
 
 func OptionRoutes(router *gin.Engine) {
-	routesGroup := router.Group("/options")
+	// Read access: all roles
+	readGroup := router.Group("/options")
+	readGroup.Use(middlewares.Authentication())
 	{
-		routesGroup.POST("/", controllers.CreateOption)
-		routesGroup.DELETE("/:id", controllers.DeleteOption)
-		routesGroup.GET("/", controllers.GetOptions)
-		routesGroup.GET("/:id", controllers.GetOption)
-		routesGroup.PUT("/:id", controllers.UpdateOption)
-		routesGroup.GET("/product/:product_id", controllers.GetOptionsByProduct)
+		readGroup.GET("/", controllers.GetOptions)
+		readGroup.GET("/:id", controllers.GetOption)
+		readGroup.GET("/product/:product_id", controllers.GetOptionsByProduct)
+	}
+
+	// Write access: admin only
+	writeGroup := router.Group("/options")
+	writeGroup.Use(middlewares.Authentication(), middlewares.Authorization("admin"))
+	{
+		writeGroup.POST("/", controllers.CreateOption)
+		writeGroup.PUT("/:id", controllers.UpdateOption)
+		writeGroup.DELETE("/:id", controllers.DeleteOption)
 	}
 }
 
 func OptionValueRoutes(router *gin.Engine) {
-	routesGroup := router.Group("/options")
+	// Read access: all roles
+	readGroup := router.Group("/options")
+	readGroup.Use(middlewares.Authentication())
 	{
-		routesGroup.POST("/:id/values/", controllers.CreateOptionValue)
-		routesGroup.GET("/:id/values/", controllers.GetValuesByOption)
-		routesGroup.GET("/values/:id", controllers.GetOptionValue)
-		routesGroup.PUT("/values/:id", controllers.UpdateOptionValue)
-		routesGroup.DELETE("/values/:id", controllers.DeleteOptionValue)
+		readGroup.GET("/:id/values/", controllers.GetValuesByOption)
+		readGroup.GET("/values/:id", controllers.GetOptionValue)
+	}
+
+	// Write access: admin only
+	writeGroup := router.Group("/options")
+	writeGroup.Use(middlewares.Authentication(), middlewares.Authorization("admin"))
+	{
+		writeGroup.POST("/:id/values/", controllers.CreateOptionValue)
+		writeGroup.PUT("/values/:id", controllers.UpdateOptionValue)
+		writeGroup.DELETE("/values/:id", controllers.DeleteOptionValue)
 	}
 }
