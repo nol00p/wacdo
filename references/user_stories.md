@@ -58,21 +58,25 @@
 | US-054 | CORS configuration             | Frontend/API      | to access the API from different origins                                        | the frontend and backend can communicate properly                | API Integration           | Done        |
 | US-055 | JSON response format           | Frontend/API      | to receive data in consistent JSON format                                       | data parsing is predictable and reliable                         | API Integration           | Done        |
 | US-056 | Unit tests                     | Developer         | to have unit tests covering controllers, middlewares, and utilities              | code quality is verified and regressions are caught              | Testing                   | Done        |
-| US-057 | Seed default roles             | System            | to have default roles (admin, preparation, accueil) seeded on first startup     | the system is ready to use without manual role setup             | Deployment                | Not Started |
+| US-057 | Seed default roles             | System            | to have default roles (admin, preparation, accueil) and admin user seeded on first startup | the system is ready to use without manual setup                 | Deployment                | Done        |
 | US-058 | Containerized deployment       | Developer         | to deploy the application via Docker                                            | the application runs consistently across environments            | Deployment                | Not Started |
 | US-059 | Production deployment          | Developer         | to deploy the application on a hosting platform (Render)                        | the application is accessible and functional for evaluation      | Deployment                | Not Started |
+| US-060 | Reset user password            | Administrator     | to reset a user's password and receive a temporary password                     | I can help staff who forgot their password regain access         | User Management           | Done        |
+| US-061 | Last-admin protection          | System            | to prevent deletion or deactivation of the last active admin account            | the system always has at least one admin for management          | Authentication & Security | Done        |
+| US-062 | Frontend password reset        | Administrator     | to reset a user's password from the Users page and see the temp password        | I can quickly help staff with forgotten passwords via the UI     | User Management           | Done        |
+| US-063 | Soft delete users              | System            | to soft-delete users (preserve record, hide from queries, free email for reuse) | order audit trails are preserved when staff accounts are removed | User Management           | Done        |
 
 ## Epic Summary
 
 | Epic                      | Number of Stories | Done | Not Started |
 | ------------------------- | ----------------- | ---- | ----------- |
-| User Management           | 7                 | 6    | 1           |
+| User Management           | 10                | 9    | 1           |
 | Product Management        | 11                | 11   | 0           |
 | Order Entry               | 12                | 12   | 0           |
 | Order Preparation         | 6                 | 6    | 0           |
-| Authentication & Security | 8                 | 8    | 0           |
+| Authentication & Security | 9                 | 9    | 0           |
 | GDPR & Data Protection    | 3                 | 3    | 0           |
 | API Integration           | 8                 | 8    | 0           |
 | Testing                   | 1                 | 1    | 0           |
-| Deployment                | 3                 | 0    | 3           |
-| **TOTAL**                 | **59**            | **55** | **4**     |
+| Deployment                | 3                 | 1    | 2           |
+| **TOTAL**                 | **63**            | **60** | **3**     |

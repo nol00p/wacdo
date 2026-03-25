@@ -3113,6 +3113,207 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/users/{id}/password": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change a user's password by providing the current and new password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Change user password",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Old and new password",
+                        "name": "passwords",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password updated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid data",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}/reset-password": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin resets a user's password and receives a temporary password",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Reset user password (admin only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Temporary password",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Activate or deactivate a user account without deleting it",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Toggle user active status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Users"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3122,14 +3323,14 @@ const docTemplate = `{
                 "customer_id": {
                     "type": "integer"
                 },
-                "items": {
+                "notes": {
+                    "type": "string"
+                },
+                "order_items": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/controllers.OrderItemInput"
                     }
-                },
-                "notes": {
-                    "type": "string"
                 },
                 "order_type": {
                     "type": "string"
@@ -3182,18 +3383,22 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "description": {
+                    "description": "Short description for the kiosk UI",
                     "type": "string"
                 },
                 "display_order": {
+                    "description": "Controls the display order in the frontend",
                     "type": "integer"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "image_url": {
+                    "description": "URL to the category image",
                     "type": "string"
                 },
                 "name": {
+                    "description": "Unique display name",
                     "type": "string"
                 },
                 "updated_at": {
@@ -3211,15 +3416,18 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "email": {
+                    "description": "Optional email for contact",
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "name": {
+                    "description": "Customer's full name",
                     "type": "string"
                 },
                 "phone": {
+                    "description": "Phone number, used for phone orders and duplicate detection",
                     "type": "string"
                 },
                 "updated_at": {
@@ -3244,18 +3452,22 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "is_available": {
+                    "description": "Unavailable menus cannot be ordered",
                     "type": "boolean"
                 },
                 "menu_products": {
+                    "description": "Products included in this menu",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.MenuProduct"
                     }
                 },
                 "name": {
+                    "description": "Unique menu name",
                     "type": "string"
                 },
                 "price": {
+                    "description": "Fixed combo price in euros",
                     "type": "number"
                 },
                 "updated_at": {
@@ -3267,22 +3479,26 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "display_order": {
+                    "description": "Controls display order in the frontend",
                     "type": "integer"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "is_optional": {
+                    "description": "Whether the product can be swapped out",
                     "type": "boolean"
                 },
                 "menu_id": {
-                    "description": "this is delete the MenuProducts when a menu is deleted",
+                    "description": "FK to Menu — cascade deletes when menu is removed",
                     "type": "integer"
                 },
                 "product_id": {
+                    "description": "FK to Products",
                     "type": "integer"
                 },
                 "quantity": {
+                    "description": "How many of this product are in the menu",
                     "type": "integer"
                 }
             }
@@ -3294,12 +3510,15 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "option_id": {
+                    "description": "FK to ProductOptions",
                     "type": "integer"
                 },
                 "option_price": {
+                    "description": "Additional cost added to the product price",
                     "type": "number"
                 },
                 "value": {
+                    "description": "Display label (e.g. \"Large\")",
                     "type": "string"
                 }
             }
@@ -3311,34 +3530,49 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_by": {
-                    "$ref": "#/definitions/models.Users"
+                    "description": "Preloaded staff user",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Users"
+                        }
+                    ]
                 },
                 "created_by_id": {
+                    "description": "FK to Users — the staff member who created the order",
                     "type": "integer"
                 },
                 "customer": {
-                    "$ref": "#/definitions/models.Customer"
+                    "description": "Preloaded customer",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Customer"
+                        }
+                    ]
                 },
                 "customer_id": {
+                    "description": "Optional FK to Customer — counter orders may have no customer",
                     "type": "integer"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "notes": {
+                    "description": "Free-text notes for the kitchen",
                     "type": "string"
                 },
                 "order_items": {
+                    "description": "Line items in this order",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.OrderItem"
                     }
                 },
                 "order_type": {
-                    "description": "\"counter\" or \"phone\"",
+                    "description": "\"counter\" (walk-in) or \"phone\" (call-in)",
                     "type": "string"
                 },
                 "scheduled_time": {
+                    "description": "Requested delivery time, used for preparation sorting",
                     "type": "string"
                 },
                 "status": {
@@ -3346,6 +3580,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "total_price": {
+                    "description": "Server-computed total (sum of all item totals)",
                     "type": "number"
                 },
                 "updated_at": {
@@ -3360,18 +3595,22 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "item_total": {
+                    "description": "(UnitPrice + option prices) * Quantity",
                     "type": "number"
                 },
                 "menu": {
                     "$ref": "#/definitions/models.Menu"
                 },
                 "menu_id": {
+                    "description": "FK to Menu (nil if this item is a product)",
                     "type": "integer"
                 },
                 "order_id": {
+                    "description": "FK to Order",
                     "type": "integer"
                 },
                 "order_item_options": {
+                    "description": "Selected options for this item",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.OrderItemOption"
@@ -3381,12 +3620,15 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.Products"
                 },
                 "product_id": {
+                    "description": "FK to Products (nil if this item is a menu)",
                     "type": "integer"
                 },
                 "quantity": {
+                    "description": "Number of this item ordered",
                     "type": "integer"
                 },
                 "unit_price": {
+                    "description": "Price per unit at order time (product price or menu price)",
                     "type": "number"
                 }
             }
@@ -3401,12 +3643,15 @@ const docTemplate = `{
                     "$ref": "#/definitions/models.OptionValues"
                 },
                 "option_value_id": {
+                    "description": "FK to OptionValues",
                     "type": "integer"
                 },
                 "order_item_id": {
+                    "description": "FK to OrderItem",
                     "type": "integer"
                 },
                 "price_applied": {
+                    "description": "Option price snapshot at order time",
                     "type": "number"
                 }
             }
@@ -3418,16 +3663,19 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "is_required": {
+                    "description": "Whether the customer must select a value",
                     "type": "boolean"
                 },
                 "is_unique": {
-                    "description": "define if the option is single or multiple choise",
+                    "description": "\"single\" = pick one, \"multiple\" = pick many",
                     "type": "string"
                 },
                 "name": {
+                    "description": "Option group name (e.g. \"Size\")",
                     "type": "string"
                 },
                 "product_id": {
+                    "description": "FK to Products",
                     "type": "integer"
                 }
             }
@@ -3436,9 +3684,15 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "category": {
-                    "$ref": "#/definitions/models.Category"
+                    "description": "Preloaded category",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Category"
+                        }
+                    ]
                 },
                 "category_id": {
+                    "description": "FK to Category",
                     "type": "integer"
                 },
                 "created_at": {
@@ -3450,19 +3704,28 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "image_url": {
+                    "description": "URL to the product image",
+                    "type": "string"
+                },
                 "is_available": {
+                    "description": "Unavailable products cannot be ordered",
                     "type": "boolean"
                 },
                 "name": {
+                    "description": "Unique product name",
                     "type": "string"
                 },
                 "preparation_time": {
+                    "description": "Estimated prep time in minutes",
                     "type": "integer"
                 },
                 "price": {
+                    "description": "Unit price in euros, used for order price calculation",
                     "type": "number"
                 },
                 "stock_quantity": {
+                    "description": "Available stock count",
                     "type": "integer"
                 },
                 "updated_at": {
@@ -3477,15 +3740,18 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "description": {
+                    "description": "Human-readable description of the role",
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "permissions": {
+                    "description": "Free-text permissions field (reserved for future use)",
                     "type": "string"
                 },
                 "role_name": {
+                    "description": "Unique role identifier used in authorization checks",
                     "type": "string"
                 },
                 "updated_at": {
@@ -3504,10 +3770,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
+                    "description": "Plain-text password, hashed before storage",
                     "type": "string",
                     "minLength": 6
                 },
                 "roles_id": {
+                    "description": "Must reference an existing role",
                     "type": "integer"
                 },
                 "username": {
@@ -3525,25 +3793,33 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "email": {
+                    "description": "Unique among non-deleted users",
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "isActive": {
+                "is_active": {
+                    "description": "Deactivated users cannot log in",
                     "type": "boolean"
                 },
                 "role": {
-                    "$ref": "#/definitions/models.Roles"
+                    "description": "Preloaded role relationship",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Roles"
+                        }
+                    ]
                 },
                 "roles_id": {
-                    "description": "only 1 role per user",
+                    "description": "FK to Roles — each user has exactly one role",
                     "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
                 },
                 "username": {
+                    "description": "Display name",
                     "type": "string"
                 }
             }

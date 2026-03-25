@@ -52,7 +52,10 @@ WacDo is a back-office application for a fast-food ordering kiosk (borne de comm
    ```bash
    go run .
    ```
-   The server starts on port `8000` by default (override with `PORT` env var). GORM auto-migrates all tables on startup.
+   The server starts on port `8000` by default (override with `PORT` env var). GORM auto-migrates all tables on startup. On first launch (empty database), default roles and an admin user are seeded automatically:
+   - **Email:** `admin@wacdo.fr`
+   - **Password:** `Admin@1234`
+   - Change the admin password after first login.
 
 5. Open the frontend by serving the `frontend/` directory (e.g. with VS Code Live Server) or any static file server.
 
@@ -64,7 +67,7 @@ Tests use an in-memory SQLite database — no external DB required.
 CGO_ENABLED=1 go test ./... -v
 ```
 
-134 tests across 12 test files covering all controllers, middlewares, and utilities.
+148 tests across 12 test files covering all controllers, middlewares, and utilities.
 
 ### Regenerating Swagger Docs
 
@@ -80,7 +83,7 @@ All endpoints except `POST /users/login` require a JWT Bearer token in the `Auth
 
 | Group      | Key Endpoints                                                              |
 | ---------- | -------------------------------------------------------------------------- |
-| Users      | `POST /users/login`, `POST/GET /users/`, `GET/DELETE /users/:id`, `PATCH /users/:id/status` |
+| Users      | `POST /users/login`, `POST/GET /users/`, `GET/DELETE /users/:id`, `PATCH /users/:id/status`, `PATCH /users/:id/password`, `PATCH /users/:id/reset-password` |
 | Roles      | `GET/POST /roles/`, `GET/DELETE /roles/:id`                                |
 | Categories | `GET/POST /categories/`, `GET/PUT/DELETE /categories/:id`                  |
 | Products   | `GET/POST /products/`, `GET/PUT/DELETE /products/:id`, `PATCH .../availability`, `PATCH .../stock` |
@@ -121,13 +124,13 @@ Orders use server-side price computation within a database transaction. Each ord
 
 ```
 wacdo/
-├── main.go              # Entry point, middleware, routes, DB migration
+├── main.go              # Entry point, middleware, routes, DB migration, seed defaults
 ├── config/              # DB connection, CORS, security headers, rate limiter
 ├── middlewares/          # JWT auth + RBAC middleware
 ├── models/              # GORM models (12 tables)
 ├── controllers/         # Business logic for all entities
 ├── routes/              # Route definitions with role restrictions
-├── utils/               # Password validator
+├── utils/               # Password validator + temp password generator
 ├── frontend/            # Vanilla JS SPA (login, dashboard, CRUD pages)
 ├── docs/                # Auto-generated Swagger files
 ├── references/          # ERD, user stories, diagrams
@@ -139,6 +142,10 @@ wacdo/
 - JWT authentication with 2-hour token expiry
 - bcrypt password hashing
 - Password strength validation (length, uppercase, lowercase, number, special char)
+- Admin password reset (generates cryptographically random temp password)
+- Last-admin protection (cannot delete or deactivate the only active admin)
+- Soft delete on users (preserves order audit trails, frees email for reuse)
+- Automatic role and admin seeding on first install
 - CORS configuration
 - Security headers (X-Frame-Options, CSP, XSS filter)
 - Rate limiting

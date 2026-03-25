@@ -163,9 +163,9 @@ func CreateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User Created"})
 }
 
-// DeleteUser permanently removes a user from the database.
-// Note: users with existing orders cannot be deleted due to the foreign key on orders.created_by_id.
-// In that case, use ToggleUserStatus to deactivate the account instead.
+// DeleteUser soft-deletes a user (sets deleted_at timestamp).
+// The user record is preserved for order audit trails but hidden from all queries.
+// The user's email becomes available for reuse after deletion.
 //
 // @Summary Delete a user
 // @Description Delete a user by ID
@@ -191,12 +191,25 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	// Check if the user exists
-	if err := config.DB.First(&user, id).Error; err != nil {
+	if err := config.DB.Preload("Role").First(&user, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	// remove user
+	// Prevent deleting the last active admin
+	if user.Role.RoleName == "admin" && user.IsActive {
+		var adminCount int64
+		config.DB.Model(&models.Users{}).
+			Joins("JOIN roles ON roles.id = users.roles_id").
+			Where("roles.role_name = ? AND users.is_active = ? AND users.deleted_at IS NULL", "admin", true).
+			Count(&adminCount)
+		if adminCount <= 1 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the last active admin account"})
+			return
+		}
+	}
+
+	// Soft-delete user (sets deleted_at, preserves record for order audit trails)
 	if err := config.DB.Delete(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 		return
@@ -229,9 +242,22 @@ func ToggleUserStatus(c *gin.Context) {
 	}
 
 	var user models.Users
-	if err := config.DB.First(&user, id).Error; err != nil {
+	if err := config.DB.Preload("Role").First(&user, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
+	}
+
+	// Prevent deactivating the last active admin
+	if user.Role.RoleName == "admin" && user.IsActive {
+		var adminCount int64
+		config.DB.Model(&models.Users{}).
+			Joins("JOIN roles ON roles.id = users.roles_id").
+			Where("roles.role_name = ? AND users.is_active = ? AND users.deleted_at IS NULL", "admin", true).
+			Count(&adminCount)
+		if adminCount <= 1 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot deactivate the last active admin account"})
+			return
+		}
 	}
 
 	user.IsActive = !user.IsActive
@@ -319,6 +345,58 @@ func ChangePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated"})
+}
+
+// ResetPassword allows an admin to reset any user's password to a temporary value.
+// The user should change this password on their next login via the ChangePassword endpoint.
+//
+// @Summary Reset user password (admin only)
+// @Description Admin resets a user's password and receives a temporary password
+// @Tags Users
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} map[string]string "Temporary password"
+// @Failure 400 {object} map[string]string "Invalid ID"
+// @Failure 404 {object} map[string]string "User not found"
+// @Failure 500 {object} map[string]string "Server error"
+// @Security BearerAuth
+// @Router /users/{id}/reset-password [patch]
+func ResetPassword(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	var user models.Users
+	if err := config.DB.First(&user, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Generate a random temporary password
+	tempPassword, err := utils.GenerateTempPassword(12)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate temporary password"})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(tempPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Server error"})
+		return
+	}
+
+	if err := config.DB.Model(&user).Update("password", string(hashedPassword)).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "Password reset successful",
+		"temp_password":  tempPassword,
+	})
 }
 
 // GetUsers returns all users with their associated role preloaded.

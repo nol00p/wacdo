@@ -19,7 +19,8 @@
 - [x] Restrict **Accueil** role: can create orders (counter/phone), deliver orders to customers, view orders
 - [x] Apply role middleware to all protected routes with appropriate role requirements
 - [x] Store the user's role (or role ID) in the JWT claims so the middleware can read it without extra DB queries
-- [ ] Seed default roles (admin, preparation, accueil) on first startup or provide a migration script
+- [x] Seed default roles (admin, preparation, accueil) and admin user on first startup (empty DB only)
+- [x] Prevent deletion or deactivation of the last active admin account
 
 ### Route Permission Matrix
 
@@ -29,6 +30,7 @@
 | | POST | `/users/` | x | | |
 | | GET | `/users/`, `/users/:id` | x | | |
 | | DELETE | `/users/:id` | x | | |
+| | PATCH | `/users/:id/reset-password` | x | | |
 | **Roles** | GET/POST/DELETE | `/roles/...` | x | | |
 | **Products** | GET | `/products/...` | x | x | x |
 | | POST/PUT/DELETE/PATCH | `/products/...` | x | | |
@@ -53,6 +55,7 @@
 
 - [x] Add `PATCH /users/:id/status` endpoint to toggle `IsActive` (deactivate/reactivate a user without deleting)
 - [x] Block login for deactivated users (`IsActive == false`)
+- [x] Add `PATCH /users/:id/reset-password` endpoint for admin-initiated password reset (generates random temp password)
 
 ### Optional
 - [ ] Add `PUT /users/:id` endpoint to update user information (username, email, role)
@@ -74,7 +77,7 @@
 > Brief: "Des tests unitaires sont réalisés et validés"
 
 - [x] Set up test infrastructure (test database or mocks, test helpers) — `testutils/setup.go` with in-memory SQLite, seed helpers, JSON request builder
-- [x] Write tests for **controllers/users.go**: Login (success/wrong pw/no email/deactivated/invalid), CreateUser (success/dup email/weak pw/bad role), GetUsers, GetUser, DeleteUser, ToggleUserStatus, ChangePassword (own/other/admin)
+- [x] Write tests for **controllers/users.go**: Login (success/wrong pw/no email/deactivated/invalid), CreateUser (success/dup email/weak pw/bad role), GetUsers, GetUser, DeleteUser (success/last admin blocked/non-admin allowed/soft delete preserves record/email reusable/cannot login after delete), ToggleUserStatus (success/last admin blocked), ChangePassword (own/other/admin), ResetPassword (success/not found/invalid ID/login with temp password)
 - [x] Write tests for **controllers/roles.go**: CreateRole (success/duplicate/invalid), GetRoles, GetRole (success/not found/invalid ID), DeleteRole (success/not found/still in use)
 - [x] Write tests for **controllers/products.go**: CRUD + availability toggle + stock update + category filter + duplicates + not found
 - [x] Write tests for **controllers/product_categories.go**: CRUD + duplicate + name conflict + still in use protection
@@ -85,8 +88,8 @@
 - [x] Write tests for **controllers/orders.go**: CreateOrder (product/menu/invalid type/no items/both product+menu/unavailable), GetOrders + status filter, GetOrder, UpdateStatus (valid/invalid/full workflow), CancelOrder (pending/non-pending), GetOrdersByCustomer
 - [x] Write tests for **middlewares/auth.go**: valid token, expired token, missing token, no Bearer prefix, invalid token, wrong signing method, context values
 - [x] Write tests for **RBAC middleware**: role allowed, role denied, missing role, multiple roles, empty string role
-- [x] Write tests for **utils/pwdvalidator.go**: valid password, too short, missing upper/lower/number/special, all special chars
-- [x] Ensure all tests pass — 134 tests passing across 12 test files. Run with `CGO_ENABLED=1 go test ./... -v`
+- [x] Write tests for **utils/pwdvalidator.go**: valid password, too short, missing upper/lower/number/special, all special chars, GenerateTempPassword (length/validation/min floor/randomness)
+- [x] Ensure all tests pass — 148 tests passing across 12 test files. Run with `CGO_ENABLED=1 go test ./... -v`
 
 ---
 
@@ -138,10 +141,10 @@
 
 > Brief: "schémas conceptuels et physiques du modèle de données", "schémas fonctionnels"
 
-- [ ] Verify ERD diagrams in `references/` are up-to-date with the current models (especially if new fields are added)
-- [ ] Create or update a functional flow diagram showing view navigation and user interactions per role
-- [ ] Update `README.md` with: project description, setup instructions, environment variables, API overview, tech stack, how to run tests
-- [ ] Document the API endpoints (Swagger already covers this — ensure it's regenerated after any changes with `swag init`)
+- [x] Verify ERD diagrams in `references/` are up-to-date with the current models (especially if new fields are added)
+- [x] Create or update a functional flow diagram showing view navigation and user interactions per role
+- [x] Update `README.md` with: project description, setup instructions, environment variables, API overview, tech stack, how to run tests
+- [x] Document the API endpoints (Swagger already covers this — ensure it's regenerated after any changes with `swag init`)
 
 ---
 
@@ -152,9 +155,9 @@
 - [x] Add activate/deactivate toggle in the frontend (Users page)
 - [x] Show logged-in user's role in topbar
 - [x] Hide sidebar navigation based on user role (admin/accueil/preparation)
-
-### Optional
-- [ ] Add user update form in the frontend (Users page)
+- [x] Add password reset button in the Users page (shows temp password in modal)
+- [x] Handle last-admin guard errors gracefully (toast + table reload)
+- [x] Update permissions table with Reset Password action
 
 ---
 
@@ -205,33 +208,24 @@
 
 # Summary
 
-| Category                  | Items | Priority  |
-| ------------------------- | ----- | --------- |
-| **Backend**               |       |           |
-| RBAC                      | 7     | Critical  |
-| User Management           | 3     | Critical  |
-| Unit Tests                | 14    | Done      |
-| Security Hardening        | 4     | High      |
-| Product Images            | 3     | Done      |
-| AutoMigrate Fix           | 1     | Done      |
-| Deployment                | 5     | Medium    |
-| Code Quality              | 6     | Done      |
-| Documentation/Deliverables| 4     | Low       |
-| **Frontend**              |       |           |
-| User Management           | 4     | Done      |
-| Product Images            | 2     | Done      |
-| Order Sorting             | 3     | Done      |
-| GDPR                      | 5     | Done      |
-| Security                  | 2     | Done      |
-| Frontend Polish           | 4     | Done      |
+| Category                  | Done / Total | Status    |
+| ------------------------- | ------------ | --------- |
+| **Backend**               |              |           |
+| RBAC                      | 8/8          | Done      |
+| User Management           | 3/4          | Optional remains (`PUT /users/:id`) |
+| Unit Tests                | 14/14        | Done (148 tests) |
+| Security Hardening        | 2/4          | HTTPS redirect pending, per-IP rate limit optional |
+| Product Images            | 3/3          | Done      |
+| AutoMigrate Fix           | 1/1          | Done      |
+| Deployment                | 0/5          | Not started |
+| Code Quality              | 6/6          | Done      |
+| Documentation/Deliverables| 4/4          | Done      |
+| **Frontend**              |              |           |
+| User Management           | 6/7          | Optional remains (user update form) |
+| Product Images            | 2/2          | Done      |
+| Order Sorting             | 3/3          | Done      |
+| GDPR                      | 5/5          | Done      |
+| Security                  | 2/2          | Done      |
+| Frontend Polish           | 4/4          | Done      |
 
----
 
-# Open Questions
-
-### Users & Roles
-- **User hard delete vs deactivation** (needs PO validation): Users with orders can never be hard-deleted due to FK constraint on `orders.created_by_id`. Three options:
-  1. **Deactivation only** for users with order history, hard delete only for users without orders. Downside: deactivated user's email can never be reused.
-  2. **SET NULL on delete** — make `created_by_id` nullable with `ON DELETE SET NULL`. Hard delete works, email is freed, order history preserved but loses "who created it".
-  3. **Soft delete** (`gorm.DeletedAt`) — row stays but is hidden from queries. Downside: email still blocked by unique constraint.
-- **Role seeding**: CLI flag (`go run . --seed`) vs separate command (`cmd/seed/main.go`) vs manual SQL?

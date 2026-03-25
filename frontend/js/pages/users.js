@@ -53,6 +53,7 @@ App.registerPage('users', async () => {
                 </td>
                 <td>${fmtDate(u.created_at)}</td>
                 <td>
+                  <button class="btn btn-sm btn-info" onclick="resetPassword(${u.id}, '${esc(u.username)}')">Reset PW</button>
                   <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">Del</button>
                 </td>
               </tr>`).join('')}
@@ -103,7 +104,7 @@ App.registerPage('users', async () => {
       await App.api('/users/' + id, { method: 'DELETE' });
       App.toast('User deleted', 'success');
       loadUsers();
-    } catch (err) { App.toast(err.message, 'error'); }
+    } catch (err) { App.toast(err.message, 'error'); loadUsers(); }
   };
 
   window.toggleUserStatus = async function(id) {
@@ -113,12 +114,28 @@ App.registerPage('users', async () => {
     } catch (err) { App.toast(err.message, 'error'); loadUsers(); }
   };
 
+  window.resetPassword = async function(id, username) {
+    if (!confirm('Reset password for ' + username + '?')) return;
+    try {
+      const data = await App.api('/users/' + id + '/reset-password', { method: 'PATCH' });
+      App.modal('Password Reset', `
+        <div class="form-group">
+          <p>Temporary password for <strong>${esc(username)}</strong>:</p>
+          <div style="background:var(--bg);padding:12px;border-radius:8px;margin-top:8px;font-family:monospace;font-size:1.1em;text-align:center;user-select:all">
+            ${esc(data.temp_password)}
+          </div>
+          <p class="text-muted" style="margin-top:12px">The user should change this password after logging in.</p>
+        </div>
+      `);
+    } catch (err) { App.toast(err.message, 'error'); }
+  };
+
   // ===== ROLES & PERMISSIONS =====
   function loadRoles() {
     const el = document.getElementById('tab-content');
 
     const permissions = [
-      { resource: 'Users',      actions: 'Create, View, Delete, Activate/Deactivate', admin: true, accueil: false, preparation: false },
+      { resource: 'Users',      actions: 'Create, View, Delete, Activate/Deactivate, Reset Password', admin: true, accueil: false, preparation: false },
       { resource: 'Roles',      actions: 'View',                                      admin: true, accueil: false, preparation: false },
       { resource: 'Products',   actions: 'View',                                      admin: true, accueil: true,  preparation: true },
       { resource: 'Products',   actions: 'Create, Edit, Delete, Stock, Availability', admin: true, accueil: false, preparation: false },

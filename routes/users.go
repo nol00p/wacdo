@@ -30,5 +30,6 @@ func UsersRoutes(router *gin.Engine) {
 		protected.GET("/", controllers.GetUsers)
 		protected.GET("/:id", controllers.GetUser)
 		protected.PATCH("/:id/status", controllers.ToggleUserStatus)
+		protected.PATCH("/:id/reset-password", controllers.ResetPassword)
 	}
 }

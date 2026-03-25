@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"wacdo/models"
 	"wacdo/testutils"
 
 	"github.com/stretchr/testify/assert"
@@ -226,6 +227,8 @@ func TestGetUser_InvalidID(t *testing.T) {
 func TestDeleteUser_Success(t *testing.T) {
 	db := testutils.SetupTestDB()
 	role := testutils.SeedRole(db, "admin")
+	// Need at least two admins so the guard doesn't block deletion
+	testutils.SeedUser(db, "keeper", "keeper@test.com", "P@ssw0rd", role.ID)
 	user := testutils.SeedUser(db, "todelete", "del@test.com", "P@ssw0rd", role.ID)
 
 	r := testutils.SetupRouter()
@@ -235,6 +238,113 @@ func TestDeleteUser_Success(t *testing.T) {
 	w := testutils.PerformRequest(r, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestDeleteUser_LastAdminBlocked(t *testing.T) {
+	db := testutils.SetupTestDB()
+	role := testutils.SeedRole(db, "admin")
+	user := testutils.SeedUser(db, "onlyadmin", "admin@test.com", "P@ssw0rd", role.ID)
+
+	r := testutils.SetupRouter()
+	r.DELETE("/users/:id", DeleteUser)
+
+	req := testutils.JSONRequest("DELETE", testutils.IDParam("/users", user.ID), nil)
+	w := testutils.PerformRequest(r, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	resp := testutils.ParseResponse(w)
+	assert.Contains(t, resp["error"], "last active admin")
+}
+
+func TestDeleteUser_NonAdminAllowed(t *testing.T) {
+	db := testutils.SetupTestDB()
+	adminRole := testutils.SeedRole(db, "admin")
+	accueilRole := testutils.SeedRole(db, "accueil")
+	testutils.SeedUser(db, "admin", "admin@test.com", "P@ssw0rd", adminRole.ID)
+	user := testutils.SeedUser(db, "staff", "staff@test.com", "P@ssw0rd", accueilRole.ID)
+
+	r := testutils.SetupRouter()
+	r.DELETE("/users/:id", DeleteUser)
+
+	req := testutils.JSONRequest("DELETE", testutils.IDParam("/users", user.ID), nil)
+	w := testutils.PerformRequest(r, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestDeleteUser_SoftDeletePreservesRecord(t *testing.T) {
+	db := testutils.SetupTestDB()
+	role := testutils.SeedRole(db, "admin")
+	testutils.SeedUser(db, "keeper", "keeper@test.com", "P@ssw0rd", role.ID)
+	user := testutils.SeedUser(db, "todelete", "del@test.com", "P@ssw0rd", role.ID)
+
+	r := testutils.SetupRouter()
+	r.DELETE("/users/:id", DeleteUser)
+	r.GET("/users/:id", GetUser)
+
+	// Delete the user
+	req := testutils.JSONRequest("DELETE", testutils.IDParam("/users", user.ID), nil)
+	w := testutils.PerformRequest(r, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// User should not be found via normal query
+	req = testutils.JSONRequest("GET", testutils.IDParam("/users", user.ID), nil)
+	w = testutils.PerformRequest(r, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	// But record still exists in DB (soft-deleted)
+	var count int64
+	db.Unscoped().Model(&models.Users{}).Where("id = ?", user.ID).Count(&count)
+	assert.Equal(t, int64(1), count)
+}
+
+func TestDeleteUser_EmailReusable(t *testing.T) {
+	db := testutils.SetupTestDB()
+	role := testutils.SeedRole(db, "admin")
+	testutils.SeedUser(db, "keeper", "keeper@test.com", "P@ssw0rd", role.ID)
+	user := testutils.SeedUser(db, "original", "reuse@test.com", "P@ssw0rd", role.ID)
+
+	r := testutils.SetupRouter()
+	r.DELETE("/users/:id", DeleteUser)
+	r.POST("/users", CreateUser)
+
+	// Delete the user
+	req := testutils.JSONRequest("DELETE", testutils.IDParam("/users", user.ID), nil)
+	w := testutils.PerformRequest(r, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Create a new user with the same email
+	body := map[string]interface{}{
+		"username": "newuser",
+		"email":    "reuse@test.com",
+		"password": "P@ssw0rd",
+		"roles_id": role.ID,
+	}
+	req = testutils.JSONRequest("POST", "/users", body)
+	w = testutils.PerformRequest(r, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestDeleteUser_CannotLoginAfterDelete(t *testing.T) {
+	db := testutils.SetupTestDB()
+	role := testutils.SeedRole(db, "admin")
+	testutils.SeedUser(db, "keeper", "keeper@test.com", "P@ssw0rd", role.ID)
+	testutils.SeedUser(db, "todelete", "del@test.com", "P@ssw0rd", role.ID)
+
+	r := testutils.SetupRouter()
+	r.DELETE("/users/:id", DeleteUser)
+	r.POST("/users/login", Login)
+
+	// Delete user ID 2
+	req := testutils.JSONRequest("DELETE", "/users/2", nil)
+	w := testutils.PerformRequest(r, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Attempt login with deleted user's credentials
+	loginBody := map[string]string{"email": "del@test.com", "password": "P@ssw0rd"}
+	req = testutils.JSONRequest("POST", "/users/login", loginBody)
+	w = testutils.PerformRequest(r, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestDeleteUser_NotFound(t *testing.T) {
@@ -252,6 +362,8 @@ func TestDeleteUser_NotFound(t *testing.T) {
 func TestToggleUserStatus_Success(t *testing.T) {
 	db := testutils.SetupTestDB()
 	role := testutils.SeedRole(db, "admin")
+	// Two admins so the guard doesn't block deactivation
+	testutils.SeedUser(db, "keeper", "keeper@test.com", "P@ssw0rd", role.ID)
 	user := testutils.SeedUser(db, "admin", "admin@test.com", "P@ssw0rd", role.ID)
 
 	r := testutils.SetupRouter()
@@ -272,6 +384,22 @@ func TestToggleUserStatus_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	resp = testutils.ParseResponse(w)
 	assert.Equal(t, true, resp["is_active"])
+}
+
+func TestToggleUserStatus_LastAdminBlocked(t *testing.T) {
+	db := testutils.SetupTestDB()
+	role := testutils.SeedRole(db, "admin")
+	user := testutils.SeedUser(db, "onlyadmin", "admin@test.com", "P@ssw0rd", role.ID)
+
+	r := testutils.SetupRouter()
+	r.PATCH("/users/:id/status", ToggleUserStatus)
+
+	req := testutils.JSONRequest("PATCH", testutils.IDParam("/users", user.ID)+"/status", nil)
+	w := testutils.PerformRequest(r, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	resp := testutils.ParseResponse(w)
+	assert.Contains(t, resp["error"], "last active admin")
 }
 
 func TestToggleUserStatus_NotFound(t *testing.T) {
@@ -363,6 +491,72 @@ func TestChangePassword_AdminCanChangeOthers(t *testing.T) {
 	}
 	req := testutils.JSONRequest("PATCH", testutils.IDParam("/users", otherUser.ID)+"/password", body)
 	w := testutils.PerformRequest(r, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestResetPassword_Success(t *testing.T) {
+	db := testutils.SetupTestDB()
+	role := testutils.SeedRole(db, "admin")
+	user := testutils.SeedUser(db, "staff", "staff@test.com", "P@ssw0rd", role.ID)
+
+	r := testutils.SetupRouter()
+	r.PATCH("/users/:id/reset-password", ResetPassword)
+
+	req := testutils.JSONRequest("PATCH", testutils.IDParam("/users", user.ID)+"/reset-password", nil)
+	w := testutils.PerformRequest(r, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	resp := testutils.ParseResponse(w)
+	assert.Equal(t, "Password reset successful", resp["message"])
+	assert.NotEmpty(t, resp["temp_password"])
+}
+
+func TestResetPassword_NotFound(t *testing.T) {
+	testutils.SetupTestDB()
+
+	r := testutils.SetupRouter()
+	r.PATCH("/users/:id/reset-password", ResetPassword)
+
+	req := testutils.JSONRequest("PATCH", "/users/999/reset-password", nil)
+	w := testutils.PerformRequest(r, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestResetPassword_InvalidID(t *testing.T) {
+	testutils.SetupTestDB()
+
+	r := testutils.SetupRouter()
+	r.PATCH("/users/:id/reset-password", ResetPassword)
+
+	req := testutils.JSONRequest("PATCH", "/users/abc/reset-password", nil)
+	w := testutils.PerformRequest(r, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestResetPassword_TempPasswordIsValid(t *testing.T) {
+	db := testutils.SetupTestDB()
+	role := testutils.SeedRole(db, "admin")
+	user := testutils.SeedUser(db, "staff", "staff@test.com", "P@ssw0rd", role.ID)
+
+	r := testutils.SetupRouter()
+	r.PATCH("/users/:id/reset-password", ResetPassword)
+	r.POST("/users/login", Login)
+
+	// Reset the password
+	req := testutils.JSONRequest("PATCH", testutils.IDParam("/users", user.ID)+"/reset-password", nil)
+	w := testutils.PerformRequest(r, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	resp := testutils.ParseResponse(w)
+	tempPassword := resp["temp_password"].(string)
+
+	// Login with the temporary password should succeed
+	loginBody := map[string]string{"email": "staff@test.com", "password": tempPassword}
+	req = testutils.JSONRequest("POST", "/users/login", loginBody)
+	w = testutils.PerformRequest(r, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
