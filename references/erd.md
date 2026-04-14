@@ -37,16 +37,19 @@ users
 ├──────────────┼──────────┼──────────────────────────────────────┤
 │ id           │ uint     │ PK, auto-increment                   │
 │ username     │ string   │ NOT NULL                             │
-│ email        │ string   │ UNIQUE, NOT NULL                     │
+│ email        │ string   │ UNIQUE (where deleted_at IS NULL)    │
 │ password     │ string   │ NOT NULL (bcrypt hash)               │
-│ roles_id     │ uint     │ FK → roles(id)                       │
+│ roles_id     │ uint     │ FK → roles(id), NOT NULL             │
 │ is_active    │ bool     │ DEFAULT true                         │
 │ created_at   │ datetime │                                      │
 │ updated_at   │ datetime │                                      │
+│ deleted_at   │ datetime │ NULLABLE, GORM soft delete           │
 └──────────────┴──────────┴──────────────────────────────────────┘
 ```
 
 **Relationships:** `users.roles_id` → `roles.id` (many-to-one)
+
+**Soft delete:** Users use GORM soft delete. Deleted rows are hidden from queries but preserved so that historical orders retain a valid `created_by` reference. The email unique index is partial (`WHERE deleted_at IS NULL`) so a deleted user's email can be reused by a new account. `is_active` is a separate reversible deactivation flag.
 
 ---
 
@@ -306,8 +309,147 @@ Order #1001 (counter, pending)
 
 - **Permissions:** The original design called for a separate `permissions` table with a `role_permissions` glue table. In practice, RBAC is enforced via middleware that checks the role name directly (admin/preparation/accueil). The `permissions` text field on `roles` is kept for documentation purposes.
 - **Price snapshots:** `order_items.unit_price` and `order_item_options.price_applied` capture prices at order time, so changing a product's price doesn't affect past orders.
-- **Soft delete:** Not used. `users.is_active` handles deactivation. Hard delete is used for other entities.
+- **Soft delete:** Used for `users` only (GORM `deleted_at`), to preserve order audit trails. `is_active` handles reversible deactivation; soft delete is for irreversible removal. All other entities use hard delete.
+- **Last-admin protection:** The last active admin cannot be deleted or deactivated — enforced in `DeleteUser` and `ToggleUserStatus`.
 
 ## ERD Diagram
 
-![ERD](wacdo_ERD.png)
+```mermaid
+erDiagram
+    roles {
+        uint id PK
+        string role_name UK "max 50, NOT NULL"
+        string description "max 255"
+        text permissions
+        datetime created_at
+        datetime updated_at
+    }
+
+    users {
+        uint id PK
+        string username "NOT NULL"
+        string email UK "NOT NULL"
+        string password "NOT NULL, bcrypt"
+        uint roles_id FK "NOT NULL"
+        bool is_active "DEFAULT true"
+        datetime created_at
+        datetime updated_at
+        datetime deleted_at "soft delete"
+    }
+
+    categories {
+        uint id PK
+        string name UK "NOT NULL"
+        string description
+        uint display_order
+        string image_url
+        datetime created_at
+        datetime updated_at
+    }
+
+    products {
+        uint id PK
+        uint category_id FK
+        string name UK "NOT NULL"
+        string description
+        float64 price "NOT NULL"
+        uint stock_quantity
+        bool is_available
+        string image_url
+        uint preparation_time "minutes"
+        datetime created_at
+        datetime updated_at
+    }
+
+    product_options {
+        uint id PK
+        uint product_id FK
+        string name "NOT NULL"
+        string is_unique "single or multiple"
+        bool is_required
+    }
+
+    option_values {
+        uint id PK
+        uint option_id FK
+        string value "NOT NULL"
+        float64 option_price
+    }
+
+    menus {
+        uint id PK
+        string name UK "max 100, NOT NULL"
+        string description "max 255"
+        float64 price "NOT NULL"
+        bool is_available "DEFAULT true"
+        datetime created_at
+        datetime updated_at
+    }
+
+    menu_products {
+        uint id PK
+        uint menu_id FK "ON DELETE CASCADE"
+        uint product_id FK
+        uint quantity "DEFAULT 1"
+        bool is_optional "DEFAULT false"
+        uint display_order "DEFAULT 0"
+    }
+
+    customers {
+        uint id PK
+        string name "NOT NULL"
+        string phone
+        string email
+        datetime created_at
+        datetime updated_at
+    }
+
+    orders {
+        uint id PK
+        uint customer_id FK "NULLABLE"
+        uint created_by_id FK "NOT NULL"
+        string order_type "counter or phone"
+        string status "DEFAULT pending"
+        string notes
+        datetime scheduled_time "NULLABLE"
+        float64 total_price "DEFAULT 0"
+        datetime created_at
+        datetime updated_at
+    }
+
+    order_items {
+        uint id PK
+        uint order_id FK "NOT NULL"
+        uint product_id FK "NULLABLE"
+        uint menu_id FK "NULLABLE"
+        uint quantity "DEFAULT 1"
+        float64 unit_price "NOT NULL"
+        float64 item_total "NOT NULL"
+    }
+
+    order_item_options {
+        uint id PK
+        uint order_item_id FK "NOT NULL"
+        uint option_value_id FK "NOT NULL"
+        float64 price_applied "NOT NULL"
+    }
+
+    %% User Management
+    roles ||--o{ users : "has many"
+
+    %% Product & Menu Management
+    categories ||--o{ products : "has many"
+    products ||--o{ product_options : "has many"
+    product_options ||--o{ option_values : "has many"
+    menus ||--o{ menu_products : "contains"
+    products ||--o{ menu_products : "included in"
+
+    %% Customer & Order Management
+    customers ||--o{ orders : "places"
+    users ||--o{ orders : "creates"
+    orders ||--o{ order_items : "contains"
+    products ||--o{ order_items : "ordered as"
+    menus ||--o{ order_items : "ordered as"
+    order_items ||--o{ order_item_options : "has"
+    option_values ||--o{ order_item_options : "selected in"
+```

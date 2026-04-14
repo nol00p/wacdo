@@ -155,6 +155,6 @@ wacdo/
 ## Documentation
 
 - **API**: Swagger UI at `/swagger/index.html`
-- **ERD**: `references/erd.md` and `references/wacdo_ERD.png`
-- **User Stories**: `references/user_stories.md` (50 stories across 6 epics)
+- **ERD**: `references/erd.md` (schema + mermaid diagram)
+- **User Stories**: `references/user_stories.md` (63 stories across 9 epics)
 - **Functional Flows**: `references/functional_flows.md`

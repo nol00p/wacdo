@@ -1,6 +1,6 @@
 /* ===== Global App Object ===== */
 const App = {
-  API: 'http://localhost:8000',
+  API: window.WACDO_API_BASE || (location.protocol === 'file:' ? 'http://localhost:8000' : location.origin),
 
   // --- Auth ---
   getToken()  { return localStorage.getItem('wacdo_token'); },
@@ -142,6 +142,10 @@ const App = {
   },
 
   init() {
+    // Swagger link — resolve against API base at runtime
+    const swaggerLink = document.getElementById('swagger-link');
+    if (swaggerLink) swaggerLink.href = this.API + '/swagger/index.html';
+
     // Modal close
     document.getElementById('modal-close').addEventListener('click', () => this.closeModal());
     document.getElementById('modal-overlay').addEventListener('click', e => {
